@@ -51,6 +51,11 @@ export class ListParteComponent implements OnInit {
     }
   }
 
+  ionViewDidEnter() {
+    // Recargar partes cuando se entra en la vista
+    this.cargarPartes();
+  }
+
   filtrar(event: any) {
     const searchTerm = event.detail.value.toLowerCase();
     this.aplicarFiltros(searchTerm);

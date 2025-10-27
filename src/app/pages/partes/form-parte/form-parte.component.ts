@@ -32,6 +32,9 @@ export class FormParteComponent implements OnInit {
   clientModalOpen = false;
   filteredCustomers: any[] = [];
   searchClientTxt: string = '';
+  
+  // Flag para evitar disparar el listener durante la carga inicial
+  isLoadingParte = false;
 
   // Modal de artículos
   articulosModalOpen = false;
@@ -59,22 +62,36 @@ export class FormParteComponent implements OnInit {
 
   ngOnInit() {
     this.initForm();
-    this.loadRutas();
-    this.loadCustomers();
-    this.loadArticulos();
 
     this.route.paramMap.subscribe(params => {
       this.parteId = params.get('id');
       if (this.parteId) {
         this.isEdit = true;
+        // Cargar el parte primero para obtener su fecha
         this.loadParte(this.parteId);
+      } else {
+        // Si no estamos editando, cargar rutas del mes actual
+        this.loadRutas();
+      }
+    });
+    
+    this.loadCustomers();
+    this.loadArticulos();
+    
+    // Listener para detectar cambios en la fecha y actualizar rutas disponibles
+    this.parteForm.get('date')?.valueChanges.subscribe(date => {
+      // Solo cargar rutas si no se está cargando un parte (evita disparo durante carga inicial)
+      if (date && !this.isLoadingParte) {
+        this.loadRutasByDate(date);
       }
     });
   }
 
   initForm() {
     this.parteForm = this.fb.group({
+      title: ['', Validators.required],
       description: ['', Validators.required],
+      address: ['', Validators.required],
       facturacion: [0],
       state: ['Pendiente', Validators.required],
       type: ['Mantenimiento', Validators.required],
@@ -170,11 +187,60 @@ export class FormParteComponent implements OnInit {
     rReq.subscribe((res: any) => {
       if (res.ok && res.rutas) {
         this.rutasDisponibles = res.rutas;
+        console.log('Rutas cargadas:', this.rutasDisponibles);
       }
     });
   }
 
+  async loadRutasByDate(selectedDate: string) {
+    // Convertir la fecha seleccionada al primer día del mes
+    const dateObj = new Date(selectedDate);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const firstDayOfMonth = `${year}-${month}-01`;
+
+    // Limpiar las rutas anteriores para evitar duplicados
+    this.rutasDisponibles = [];
+
+    // Cargar rutas del mes seleccionado
+    try {
+      const rReq = this._rutas.getRutasDisponibles(firstDayOfMonth);
+      rReq.subscribe((res: any) => {
+        if (res.ok && res.rutas) {
+          this.rutasDisponibles = res.rutas;
+          console.log('Rutas cargadas para el mes seleccionado:', this.rutasDisponibles);
+
+          // También cargar rutas del mes actual si es diferente
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+          const firstDayCurrentMonth = `${currentYear}-${currentMonth}-01`;
+
+          // Solo cargar si es diferente al mes seleccionado
+          if (firstDayCurrentMonth !== firstDayOfMonth) {
+            const req2 = this._rutas.getRutasDisponibles(firstDayCurrentMonth);
+            req2.subscribe((res2: any) => {
+              if (res2.ok && res2.rutas) {
+                // Agregar rutas que no estén ya en la lista
+                res2.rutas.forEach((ruta: any) => {
+                  if (!this.rutasDisponibles.find(r => r._id === ruta._id)) {
+                    this.rutasDisponibles.push(ruta);
+                  }
+                });
+                console.log('Rutas disponibles totales:', this.rutasDisponibles);
+              }
+            });
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error al cargar rutas:', error);
+    }
+  }
+
   async loadParte(id: string) {
+    this.isLoadingParte = true; // Activar flag para evitar disparo del listener
+    
     const req = await this._parte.getParteById(id);
     req.subscribe((res: any) => {
       if (!res) return;
@@ -182,11 +248,14 @@ export class FormParteComponent implements OnInit {
       const p = res;                         // alias corto
       const fechaIso = p.date ? this.isoDateOnly(p.date) : '';
 
-      console.log(p)
+      console.log('Parte cargado:', p);
+      console.log('Ruta del parte:', p.ruta);
 
       /* ----------- rellenar FormGroup ----------- */
       this.parteForm.patchValue({
+        title: p.title ?? '',
         description: p.description,
+        address: p.address ?? '',
         facturacion: p.facturacion,
         state: p.state,
         type: p.type,
@@ -203,6 +272,9 @@ export class FormParteComponent implements OnInit {
 
       /* mostrar el nombre del cliente en el input de búsqueda */
       this.searchClientTxt = p.customer?.name ?? '';
+
+      // Cargar rutas del mes del parte y también del mes actual
+      this.loadRutasForParte(p.date, p.ruta);
 
       /* ----------- cargar artículos si existen ----------- */
       if (p.articulos?.length) {
@@ -223,7 +295,58 @@ export class FormParteComponent implements OnInit {
           this.articulosFormArray.push(g);
         });
       }
+      
+      this.isLoadingParte = false; // Desactivar flag después de cargar
     });
+  }
+
+  async loadRutasForParte(parteDate: string, rutaAsignada: any) {
+    // Cargar rutas del mes del parte
+    const parteDateObj = new Date(parteDate);
+    const year = parteDateObj.getFullYear();
+    const month = String(parteDateObj.getMonth() + 1).padStart(2, '0');
+    const firstDayOfMonth = `${year}-${month}-01`;
+
+    // Cargar rutas del mes del parte
+    const req = await this._rutas.getRutasDisponibles(firstDayOfMonth);
+    req.subscribe((res: any) => {
+      if (res.ok && res.rutas) {
+        this.rutasDisponibles = [...res.rutas];
+        console.log('Rutas cargadas para el mes del parte:', this.rutasDisponibles);
+
+        // Si hay una ruta asignada, asegurarse de que esté en la lista
+        if (rutaAsignada) {
+          const rutaId = rutaAsignada._id || rutaAsignada;
+          const rutaExists = this.rutasDisponibles.find(r => r._id === rutaId);
+          if (!rutaExists && rutaAsignada._id) {
+            // Si la ruta no está en la lista, agregarla
+            this.rutasDisponibles.push(rutaAsignada);
+          }
+        }
+      }
+    });
+
+    // También cargar rutas del mes actual
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const firstDayCurrentMonth = `${currentYear}-${currentMonth}-01`;
+
+    // Solo cargar si es diferente al mes del parte
+    if (firstDayCurrentMonth !== firstDayOfMonth) {
+      const req2 = await this._rutas.getRutasDisponibles(firstDayCurrentMonth);
+      req2.subscribe((res: any) => {
+        if (res.ok && res.rutas) {
+          // Agregar rutas que no estén ya en la lista
+          res.rutas.forEach((ruta: any) => {
+            if (!this.rutasDisponibles.find(r => r._id === ruta._id)) {
+              this.rutasDisponibles.push(ruta);
+            }
+          });
+          console.log('Rutas disponibles totales:', this.rutasDisponibles);
+        }
+      });
+    }
   }
 
   async onSave() {
@@ -241,23 +364,47 @@ export class FormParteComponent implements OnInit {
     }
 
     if (!this.isEdit) {
-      const body = { ...this.parteForm.value };   // en edición
-      if (!body.ruta) delete body.ruta;          // <-- evita "" en la petición
-      if (!body.endDate) delete body.endDate;
-      if (!body.frequency) delete body.frequency;
+      const body = { ...this.parteForm.value };
+      if (!body.ruta || body.ruta === '') delete body.ruta;
+      if (!body.endDate || body.endDate === '') delete body.endDate;
+      if (!body.frequency || body.frequency === '') delete body.frequency;
+      
+      // Limpiar articuloId de cada artículo antes de enviar
+      if (body.articulos && Array.isArray(body.articulos)) {
+        body.articulos = body.articulos.map((articulo: any) => {
+          const { articuloId, ...articuloClean } = articulo;
+          return articuloClean;
+        });
+      }
+      
       // Crear parte
-      const req = await this._parte.createParte(data);
+      console.log('Enviando datos al backend:', JSON.stringify(body, null, 2));
+      const req = await this._parte.createParte(body);
       req.subscribe((resp: any) => {
+        console.log('Respuesta del backend:', resp);
         if (resp.ok) {
           this.navCtrl.navigateRoot('/partes');
+        } else {
+          console.error('Error al crear parte:', resp.error, resp.detalles);
         }
+      }, (error) => {
+        console.error('Error en la petición:', error);
       });
     } else {
       // Actualizar parte
-      const body = { ...this.parteForm.value, _id: this.parteId };   // en edición
-      if (!body.ruta) delete body.ruta;          // <-- evita "" en la petición
-      if (!body.endDate) delete body.endDate;
-      if (!body.frequency) delete body.frequency;
+      const body = { ...this.parteForm.value, _id: this.parteId };
+      if (!body.ruta || body.ruta === '') delete body.ruta;
+      if (!body.endDate || body.endDate === '') delete body.endDate;
+      if (!body.frequency || body.frequency === '') delete body.frequency;
+      
+      // Limpiar articuloId de cada artículo antes de enviar
+      if (body.articulos && Array.isArray(body.articulos)) {
+        body.articulos = body.articulos.map((articulo: any) => {
+          const { articuloId, ...articuloClean } = articulo;
+          return articuloClean;
+        });
+      }
+      
       const req = await this._parte.updateParte(body);
       req.subscribe((resp: any) => {
         if (resp.ok) {

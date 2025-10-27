@@ -54,12 +54,14 @@ export class PartesService {
   /**
    * Crear parte (POST /partes/create)
    */
-  async createParte(data: Partial<Parte>): Promise<Observable<Parte>> {
+  async createParte(data: Partial<Parte>): Promise<Observable<any>> {
     const opts = await this.getHeaders();
-    return this.http.post<ApiResponse<Parte>>(`${this.baseUrl}/partes/create`, data, opts).pipe(
+    return this.http.post<any>(`${this.baseUrl}/partes/create`, data, opts).pipe(
       map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+        console.log('Respuesta del servidor:', response);
+        if (response.ok) {
+          // El backend devuelve { ok: true, data: { parte: parteDB } }
+          return response;
         }
         throw new Error(response.error || 'Error al crear el parte');
       })

@@ -17,9 +17,21 @@
       <div class="form-section">
         <h2>Información Básica</h2>
         <ion-item>
+          <ion-label position="stacked">Título</ion-label>
+          <ion-input formControlName="title" placeholder="Título del parte">
+          </ion-input>
+        </ion-item>
+
+        <ion-item>
           <ion-label position="stacked">Descripción</ion-label>
           <ion-textarea formControlName="description" rows="4" placeholder="Describa el trabajo a realizar">
           </ion-textarea>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Dirección</ion-label>
+          <ion-input formControlName="address" placeholder="Dirección del trabajo">
+          </ion-input>
         </ion-item>
 
         <ion-item>
@@ -82,7 +94,7 @@
           <ion-label position="stacked">Ruta</ion-label>
           <ion-select formControlName="ruta" placeholder="Seleccione ruta">
             <ion-select-option *ngFor="let r of rutasDisponibles" [value]="r._id">
-              {{ r.name?.name }} - {{ r.date | date:'shortDate' }}
+              {{ r.name?.name || 'Sin nombre' }} - {{ r.date | date:'dd/MM/yyyy' }}
             </ion-select-option>
           </ion-select>
         </ion-item>
