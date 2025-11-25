@@ -6,6 +6,7 @@ import { RutasService } from 'src/app/services/rutas.service';
 import { UserService } from 'src/app/services/user.service';
 import { VehiculosService } from 'src/app/services/vehiculos.service';
 import { CustomerService } from 'src/app/services/customer.service';
+import { isoDateOnly } from 'src/app/shared/utils/date.utils';
 
 @Component({
   selector: 'app-form-ruta',
@@ -106,7 +107,7 @@ export class FormRutaComponent implements OnInit {
         const ruta = res.ruta;
         this.rutaForm.patchValue({
           name: ruta.name?._id ?? ruta.name,
-          date: ruta.date ? ruta.date.substring(0, 10) : '',
+          date: ruta.date ? isoDateOnly(ruta.date) : '',
           state: ruta.state,
           vehicle: ruta.vehicle?._id ?? ruta.vehicle ?? '',
           users: Array.isArray(ruta.users) ? ruta.users.map((u: any) => u._id) : [],

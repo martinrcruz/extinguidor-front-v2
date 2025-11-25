@@ -151,60 +151,39 @@ export class CrearRutaCalendarioComponent implements OnInit {
         return;
       }
 
-      const selectedRutaN = this.rutasN.find(r => r._id === this.rutaNId);
-      if (!selectedRutaN) {
-        console.error('RutaN no encontrada');
+      if (!this.selectedEncargado) {
+        console.error('No se seleccionó un encargado');
         return;
       }
-
-      const selectedVehicle = this.vehicles.find(v => v._id === this.selectedVehicle);
-      const selectedUsers = this.users.filter(u => this.selectedUsers.includes(u._id));
-      const selectedEncargado = this.users.find(u => u._id === this.selectedEncargado);
-      const selectedHerramientas = this.herramientas.filter(h => this.selectedHerramientas.includes(h._id));
-
-      // Mapear el vehículo a la estructura esperada por la interfaz Ruta
-      const mappedVehicle = selectedVehicle ? {
-        _id: selectedVehicle._id!,
-        fuel: selectedVehicle.fuel,
-        type: selectedVehicle.type,
-        modelo: selectedVehicle.modelo,
-        brand: selectedVehicle.brand,
-        photo: selectedVehicle.photo || '',
-        matricula: selectedVehicle.matricula,
-        
-        createdDate: selectedVehicle.createdDate || new Date().toISOString(),
-        __v: selectedVehicle.__v || 0
-      } : undefined;
 
       // Obtener los partes seleccionados
       const selectedPartes = this.partesNoAsignados.filter(p => p.selected);
 
-      const data: Partial<Ruta> = {
-        date: this.date,
-        name: {
-          _id: this.rutaNId,
-          name: selectedRutaN.name,
-          __v: 0
-        },
+      // Preparar datos enviando solo IDs (no objetos completos)
+      // La fecha se envía como string YYYY-MM-DD
+      const data = {
+        date: this.date, // String en formato YYYY-MM-DD
+        name: this.rutaNId, // Solo ID de RutaN
         type: this.type,
         state: this.state,
-        vehicle: mappedVehicle,
-        users: selectedUsers,
-        encargado: selectedEncargado,
+        vehicle: this.selectedVehicle || null, // Solo ID del vehículo o null
+        users: this.selectedUsers, // Array de IDs de usuarios
+        encargado: this.selectedEncargado, // Solo ID del encargado
         comentarios: this.comentario,
-        herramientas: selectedHerramientas,
+        herramientas: this.selectedHerramientas, // Array de IDs de herramientas
         eliminado: false
       };
 
       // Crear la ruta y luego asignar los partes
-      const req = await this.rutasService.createRuta(data);
-      req.pipe(
+      this.rutasService.createRuta(data).pipe(
         switchMap((response: any) => {
-          console.log(response)
-          if (response.ok && response.ruta && selectedPartes.length > 0) {
+          console.log('Respuesta crear ruta:', response);
+          // Verificar formato de respuesta estandarizado { ok: true, data: { ruta } }
+          const rutaId = response.data?.ruta?._id || response.ruta?._id;
+          if (response.ok && rutaId && selectedPartes.length > 0) {
             // Si hay partes seleccionados y la ruta se creó correctamente, asignarlos
             return this.rutasService.asignarPartesARuta(
-              response.ruta._id,
+              rutaId,
               selectedPartes.map(p => p._id)
             );
           }
@@ -212,11 +191,11 @@ export class CrearRutaCalendarioComponent implements OnInit {
         })
       ).subscribe(
         (response: any) => {
-          console.log(response)
+          console.log('Respuesta final:', response);
           if (response.ok) {
             this.navCtrl.navigateBack('/calendario');
           } else {
-            console.error('Error al crear ruta o asignar partes:', response.error);
+            console.error('Error al crear ruta o asignar partes:', response.error || response.message);
           }
         },
         (error) => {

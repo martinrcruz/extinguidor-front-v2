@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { NavController, LoadingController, ToastController, AlertController } from '@ionic/angular';
 import { ContratoService } from 'src/app/services/contrato.service';
 import { ClientesService, Cliente } from 'src/app/services/clientes.service';
+import { isoDateOnly } from 'src/app/shared/utils/date.utils';
 
 @Component({
   selector: 'app-form-contrato',
@@ -67,8 +68,8 @@ export class FormContratoComponent implements OnInit {
             code: res.data.code,
             customerId: res.data.customerId,
             name: res.data.name,
-            startDate: res.data.startDate,
-            endDate: res.data.endDate,
+            startDate: res.data.startDate ? isoDateOnly(res.data.startDate) : '',
+            endDate: res.data.endDate ? isoDateOnly(res.data.endDate) : '',
             type: res.data.type,
             averageTime: res.data.averageTime,
             delegation: res.data.delegation,

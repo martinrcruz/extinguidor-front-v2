@@ -43,8 +43,10 @@ export class PartesService {
     const opts = await this.getHeaders();
     return this.http.get<any>(`${this.baseUrl}/partes/${id}`, opts).pipe(
       map(response => {
-        if (response.ok && response.parte) {
-          return response.parte;
+        // Manejar formato estandarizado { ok: true, data: { parte } }
+        const parte = response.data?.parte || response.parte;
+        if (response.ok && parte) {
+          return parte;
         }
         throw new Error(response.error || 'Error al obtener el parte');
       })
@@ -73,10 +75,12 @@ export class PartesService {
    */
   async updateParte(data: Partial<Parte>): Promise<Observable<Parte>> {
     const opts = await this.getHeaders();
-    return this.http.post<ApiResponse<Parte>>(`${this.baseUrl}/partes/update`, data, opts).pipe(
-      map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+    return this.http.post<any>(`${this.baseUrl}/partes/update`, data, opts).pipe(
+      map((response: any) => {
+        // Manejar formato estandarizado { ok: true, data: { parte } }
+        const parte = response.data?.parte || response.data;
+        if (response.ok && parte) {
+          return parte;
         }
         throw new Error(response.error || 'Error al actualizar el parte');
       })
@@ -103,10 +107,12 @@ export class PartesService {
    */
   async getPartesNoAsignados(): Promise<Observable<Parte[]>> {
     const opts = await this.getHeaders();
-    return this.http.get<ApiResponse<Parte[]>>(`${this.baseUrl}/partes/noasignados`, opts).pipe(
-      map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+    return this.http.get<any>(`${this.baseUrl}/partes/noasignados`, opts).pipe(
+      map((response: any) => {
+        // Manejar formato estandarizado { ok: true, data: { partes } }
+        const partes = response.data?.partes || response.partes || [];
+        if (response.ok) {
+          return partes;
         }
         throw new Error(response.error || 'Error al obtener los partes no asignados');
       })
@@ -133,10 +139,12 @@ export class PartesService {
    */
   async getPartesByWorker(workerId: string): Promise<Observable<Parte[]>> {
     const opts = await this.getHeaders();
-    return this.http.get<ApiResponse<Parte[]>>(`${this.baseUrl}/partes/worker/${workerId}`, opts).pipe(
-      map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+    return this.http.get<any>(`${this.baseUrl}/partes/worker/${workerId}`, opts).pipe(
+      map((response: any) => {
+        // Manejar formato estandarizado { ok: true, data: { partes } }
+        const partes = response.data?.partes || response.partes || [];
+        if (response.ok) {
+          return partes;
         }
         throw new Error(response.error || 'Error al obtener los partes del trabajador');
       })
@@ -148,10 +156,12 @@ export class PartesService {
    */
   async updateParteStatus(parteId: string, status: string): Promise<Observable<Parte>> {
     const opts = await this.getHeaders();
-    return this.http.put<ApiResponse<Parte>>(`${this.baseUrl}/partes/${parteId}/status`, { status }, opts).pipe(
-      map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+    return this.http.put<any>(`${this.baseUrl}/partes/${parteId}/status`, { status }, opts).pipe(
+      map((response: any) => {
+        // Manejar formato estandarizado { ok: true, data: { parte } }
+        const parte = response.data?.parte || response.parte || response.data;
+        if (response.ok && parte) {
+          return parte;
         }
         throw new Error(response.error || 'Error al actualizar el estado del parte');
       })

@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { DateLocalPipe } from '../../pipes/date-local.pipe';
 
 @Component({
   selector: 'app-date-picker',
@@ -10,7 +11,7 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
       <ion-label>{{ label }}</ion-label>
       <ion-button fill="clear" (click)="openDatePicker()">
         <ion-icon name="calendar-outline" slot="start"></ion-icon>
-        {{ selectedDate | date:'dd/MM/yyyy' }}
+        {{ selectedDate | dateLocal:'dd/MM/yyyy' }}
       </ion-button>
     </ion-item>
 
@@ -59,7 +60,7 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
     }
   `],
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, DateLocalPipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class DatePickerComponent {

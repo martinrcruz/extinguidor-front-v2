@@ -6,6 +6,7 @@ import { ListParteComponent } from './list-parte/list-parte.component';
 import { FormParteComponent } from './form-parte/form-parte.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { PartesTabsComponent } from './partes-tabs/partes-tabs.component';
+import { SharedModule } from 'src/app/shared/shared.module';
 
 @NgModule({
   declarations: [ListParteComponent, FormParteComponent, PartesTabsComponent],
@@ -14,7 +15,8 @@ import { PartesTabsComponent } from './partes-tabs/partes-tabs.component';
     IonicModule,
     PartesRoutingModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    SharedModule
   ],
   exports: []
 })

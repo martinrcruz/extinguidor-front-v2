@@ -4,6 +4,7 @@ import { IonicModule } from '@ionic/angular';
 import { DatePickerComponent } from './components/date-picker/date-picker.component';
 import { FormValidationDirective } from './directives/form-validation.directive';
 import { ClientSelectorComponent } from './components/client-selector/client-selector.component';
+import { DateLocalPipe } from './pipes/date-local.pipe';
 
 @NgModule({
   declarations: [
@@ -13,14 +14,16 @@ import { ClientSelectorComponent } from './components/client-selector/client-sel
     CommonModule,
     IonicModule,
     DatePickerComponent,
-    ClientSelectorComponent
+    ClientSelectorComponent,
+    DateLocalPipe
   ],
   exports: [
     CommonModule,
     IonicModule,
     DatePickerComponent,
     ClientSelectorComponent,
-    FormValidationDirective
+    FormValidationDirective,
+    DateLocalPipe
   ]
 })
 export class SharedModule { }

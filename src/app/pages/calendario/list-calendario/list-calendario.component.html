@@ -86,7 +86,7 @@
       <ion-col size="12" size-md="6">
         <h2>
           <ion-icon name="map-outline"></ion-icon>
-          Rutas del {{ selectedDay | date:'dd-MM-yyyy' }}
+          Rutas del {{ selectedDay | dateLocal:'dd-MM-yyyy' }}
         </h2>
         
         <div class="empty-state" *ngIf="(rutasDelDia?.length || 0) === 0">
@@ -295,7 +295,7 @@
                     <ion-col>
                       <p class="parte-details">
                         <ion-icon name="calendar-outline"></ion-icon>
-                        <strong>Fecha:</strong> {{ p.date | date:'dd/MM/yyyy' }}
+                        <strong>Fecha:</strong> {{ p.date | dateLocal:'dd/MM/yyyy' }}
                       </p>
                     </ion-col>
                   </ion-row>

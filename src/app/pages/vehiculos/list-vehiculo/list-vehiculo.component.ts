@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { LoadingController, ToastController, NavController } from '@ionic/angular';
 import { VehiculosService } from '../../../services/vehiculos.service';
 import { firstValueFrom } from 'rxjs';
+import { isoDateOnly } from 'src/app/shared/utils/date.utils';
 
 @Component({
   selector: 'app-list-vehiculo',
@@ -68,7 +69,7 @@ export class ListVehiculoComponent implements OnInit {
       const matchesStatus = !this.selectedStatus || vehiculo.estado === this.selectedStatus;
       
       const matchesDate = !this.selectedDate || 
-                         new Date(vehiculo.fechaMantenimiento).toISOString().split('T')[0] === this.selectedDate;
+                         isoDateOnly(vehiculo.fechaMantenimiento) === this.selectedDate;
       
       return matchesSearch && matchesStatus && matchesDate;
     });

@@ -7,6 +7,7 @@ import { RutasService } from 'src/app/services/rutas.service';
 import { CustomerService } from 'src/app/services/customer.service';
 import { ArticuloService } from 'src/app/services/articulo.service';
 import { Articulo } from 'src/app/models/articulo.model';
+import { isoDateOnly, parseDateAsLocal } from 'src/app/shared/utils/date.utils';
 
 @Component({
   selector: 'app-form-parte',
@@ -194,7 +195,7 @@ export class FormParteComponent implements OnInit {
 
   async loadRutasByDate(selectedDate: string) {
     // Convertir la fecha seleccionada al primer día del mes
-    const dateObj = new Date(selectedDate);
+    const dateObj = parseDateAsLocal(selectedDate) || new Date(selectedDate);
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
     const firstDayOfMonth = `${year}-${month}-01`;
@@ -246,7 +247,7 @@ export class FormParteComponent implements OnInit {
       if (!res) return;
 
       const p = res;                         // alias corto
-      const fechaIso = p.date ? this.isoDateOnly(p.date) : '';
+      const fechaIso = p.date ? isoDateOnly(p.date) : '';
 
       console.log('Parte cargado:', p);
       console.log('Ruta del parte:', p.ruta);
@@ -267,7 +268,7 @@ export class FormParteComponent implements OnInit {
         gestiona: p.gestiona,
         periodico: p.periodico,
         frequency: p.frequency ?? 'Mensual',
-        endDate: p.endDate ? this.isoDateOnly(p.endDate) : ''
+        endDate: p.endDate ? isoDateOnly(p.endDate) : ''
       });
 
       /* mostrar el nombre del cliente en el input de búsqueda */
@@ -302,7 +303,8 @@ export class FormParteComponent implements OnInit {
 
   async loadRutasForParte(parteDate: string, rutaAsignada: any) {
     // Cargar rutas del mes del parte
-    const parteDateObj = new Date(parteDate);
+    const parteDateObj = parseDateAsLocal(parteDate);
+    if (!parteDateObj) return;
     const year = parteDateObj.getFullYear();
     const month = String(parteDateObj.getMonth() + 1).padStart(2, '0');
     const firstDayOfMonth = `${year}-${month}-01`;
@@ -358,7 +360,9 @@ export class FormParteComponent implements OnInit {
 
 
     // Verificar en front date >= minDate
-    if (new Date(data.date) < new Date(this.minDate)) {
+    const fechaData = parseDateAsLocal(data.date);
+    const fechaMin = parseDateAsLocal(this.minDate);
+    if (!fechaData || !fechaMin || fechaData < fechaMin) {
       console.error('Fecha anterior al mes actual');
       return;
     }
@@ -448,10 +452,6 @@ export class FormParteComponent implements OnInit {
 
   cancel() {
     this.navCtrl.back();
-  }
-
-  private isoDateOnly(dateStr: string): string {
-    return new Date(dateStr).toISOString().substring(0, 10);
   }
 
   openArticulosModal() {

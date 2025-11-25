@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Parte } from '../../interfaces/parte.interface';
+import { parseDateAsLocal } from 'src/app/shared/utils/date.utils';
 
 interface Ruta {
   _id: string;
@@ -142,8 +143,12 @@ export class WorkerDashboardComponent implements OnInit, OnDestroy {
           // Procesar partes
           if (results.partes.ok && results.partes.partes) {
             this.partes = results.partes.partes.filter((parte: Parte) => {
-              const parteDate = new Date(parte.date);
-              return parteDate >= new Date(startDate) && parteDate <= new Date(endDate);
+              const parteDate = parseDateAsLocal(parte.date);
+              if (!parteDate) return false;
+              const start = parseDateAsLocal(startDate);
+              const end = parseDateAsLocal(endDate);
+              if (!start || !end) return false;
+              return parteDate >= start && parteDate <= end;
             });
           } else {
             this.error = results.partes.error || 'Error al cargar los partes';
@@ -153,8 +158,12 @@ export class WorkerDashboardComponent implements OnInit, OnDestroy {
           // Procesar rutas
           if (results.rutas.ok && results.rutas.rutas) {
             this.rutas = results.rutas.rutas.filter((ruta: Ruta) => {
-              const rutaDate = new Date(ruta.date);
-              return rutaDate >= new Date(startDate) && rutaDate <= new Date(endDate);
+              const rutaDate = parseDateAsLocal(ruta.date);
+              if (!rutaDate) return false;
+              const start = parseDateAsLocal(startDate);
+              const end = parseDateAsLocal(endDate);
+              if (!start || !end) return false;
+              return rutaDate >= start && rutaDate <= end;
             });
             console.log('Rutas cargadas:', this.rutas);
           } else {

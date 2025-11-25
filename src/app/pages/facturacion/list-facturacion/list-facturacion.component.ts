@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { formatDateLocal } from 'src/app/shared/utils/date.utils';
 import { SharedModule } from 'src/app/shared/shared.module';
 import { FacturacionService, Facturacion } from '../../../services/facturacion.service';
 import { LoadingController, ToastController } from '@ionic/angular';
@@ -67,7 +68,7 @@ export class ListFacturacionComponent implements OnInit {
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleDateString();
+    return formatDateLocal(date);
   }
 
   formatCurrency(amount: number): string {

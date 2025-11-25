@@ -10,6 +10,7 @@ import { SharedModule } from 'src/app/shared/shared.module';
 import { Ruta } from '../../../models/ruta.model';
 import { Parte } from '../../../models/parte.model';
 import { ApiResponse } from '../../../interfaces/api-response.interface';
+import { parseDateAsLocal } from 'src/app/shared/utils/date.utils';
 
 @Component({
   selector: 'app-list-calendario',
@@ -101,7 +102,9 @@ export class ListCalendarioComponent implements OnInit {
           const partes = response.partes || response.data?.partes || [];
           this.factSumDay = {}; // Reiniciar para evitar datos antiguos
           partes.forEach((p: any) => {
-            const d = new Date(p.date);
+            // Parsear fecha correctamente para evitar problemas de timezone
+            const d = parseDateAsLocal(p.date);
+            if (!d) return;
             const dayStr = this.toDateString(d);
             if (!this.factSumDay[dayStr]) this.factSumDay[dayStr] = 0;
             this.factSumDay[dayStr] += (p.facturacion || 0);
@@ -178,31 +181,19 @@ export class ListCalendarioComponent implements OnInit {
     return rutas.map(ruta => {
       if (!ruta) return null;
 
-
-      // Si ruta.date es una fecha válida, convertirla a UTC
-      let date: Date;
+      // Si ruta.date es una fecha válida, convertirla correctamente
+      let date: Date | null = null;
       if (ruta.date) {
-        // Convertir la fecha en formato UTC a la misma fecha local sin el ajuste de zona horaria
-        const rutaDateParts = ruta.date.split('T');
-        const [year, month, day] = rutaDateParts[0].split('-').map(Number); // extraemos año, mes y día
-        const [hours, minutes, seconds] = rutaDateParts[1].split(':').map(Number); // extraemos hora, minutos y segundos
-        // Crear la fecha en UTC
-        date = new Date(Date.UTC(year, month - 1, day + 1, hours, minutes, 0));
-
-        // Comprobamos si la fecha es válida
-        if (isNaN(date.getTime())) {
+        date = parseDateAsLocal(ruta.date);
+        if (!date) {
           console.warn('Fecha inválida en ruta:', ruta);
           return null;
         }
-
-        // Establecemos la hora a las 00:00 UTC
-        date.setUTCHours(0, 0, 0, 0);
       } else {
         // Si no existe una fecha, usamos la fecha actual
         date = new Date();
-        date.setUTCHours(0, 0, 0, 0);
+        date.setHours(0, 0, 0, 0);
       }
-
 
       return {
         start: date,
@@ -500,12 +491,15 @@ export class ListCalendarioComponent implements OnInit {
   }
 
   parseDateAsUTC(dateStr: string): Date {
-    const date = new Date(dateStr);
-    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const date = parseDateAsLocal(dateStr);
+    return date || new Date();
   }
 
   toDateString(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   getTipoRutaClass(tipo: string): string {

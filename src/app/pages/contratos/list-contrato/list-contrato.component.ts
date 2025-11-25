@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { isoDateOnly } from 'src/app/shared/utils/date.utils';
 import { Router } from '@angular/router';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { ContratoService } from '../../../services/contrato.service';
@@ -62,7 +63,7 @@ export class ListContratoComponent implements OnInit {
       const matchesType = !this.selectedType || contrato.type === this.selectedType;
       
       const matchesDate = !this.selectedDate || 
-                         new Date(contrato.startDate).toISOString().split('T')[0] === this.selectedDate;
+                         isoDateOnly(contrato.startDate) === this.selectedDate;
       
       return matchesSearch && matchesType && matchesDate;
     });

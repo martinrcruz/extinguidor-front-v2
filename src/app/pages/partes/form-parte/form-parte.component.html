@@ -94,7 +94,7 @@
           <ion-label position="stacked">Ruta</ion-label>
           <ion-select formControlName="ruta" placeholder="Seleccione ruta">
             <ion-select-option *ngFor="let r of rutasDisponibles" [value]="r._id">
-              {{ r.name?.name || 'Sin nombre' }} - {{ r.date | date:'dd/MM/yyyy' }}
+              {{ r.name?.name || 'Sin nombre' }} - {{ r.date | dateLocal:'dd/MM/yyyy' }}
             </ion-select-option>
           </ion-select>
         </ion-item>
