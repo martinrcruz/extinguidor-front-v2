@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
-import { Observable, from, switchMap } from 'rxjs';
+import { Observable, from, switchMap, map } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -108,6 +108,16 @@ export class RutasService {
         this.http.get<any>(
           `${this.baseUrl}/rutas/disponibles?date=${dateStr}`,
           opts
+        ).pipe(
+          // Normalizar formato para garantizar que siempre haya un arreglo de rutas accesible
+          map((response:any) => {
+            const rutas = response?.data?.rutas || response?.rutas || [];
+            return {
+              ...response,
+              ok: response?.ok !== false,
+              rutas
+            };
+          })
         )
       )
     );

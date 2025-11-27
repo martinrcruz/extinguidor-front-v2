@@ -259,48 +259,55 @@ export class ListCalendarioComponent implements OnInit {
         if (this.rutasDelDia.length > 0) {
           this.mostrarDetalleRuta(this.rutasDelDia[0]);
         }
+      } else {
+        this.rutasDelDia = [];
+        this.rutaSeleccionada = null;
+        this.partesAsignadosARuta = [];
       }
+    } else {
+      this.rutasDelDia = [];
+      this.rutaSeleccionada = null;
+      this.partesAsignadosARuta = [];
     }
 
+    const rutasPrevias = [...this.rutasDelDia];
+
     // Además, hacer la llamada al API para asegurar que tenemos los datos más actualizados
-    this.calendarioService.getRutasByDate(dateStr).subscribe((response: any) => {
-      this.rutasDelDia = [];
-      console.log('Respuesta de getRutasByDate en dayClicked:', response);
+    this.calendarioService.getRutasByDate(dateStr).subscribe({
+      next: (response: any) => {
+        console.log('Respuesta de getRutasByDate en dayClicked:', response);
+        const rutasAPI = response?.data?.rutas || response?.rutas || [];
 
-      if (response && response.ok) {
-        // Normalizar la estructura de respuesta
-        let rutasAPI = [];
-        if (response.rutas) {
-          rutasAPI = response.rutas;
-        } else if (response.data && response.data.rutas) {
-          rutasAPI = response.data.rutas;
-        }
-
-        if (rutasAPI.length > 0) {
+        if (response?.ok && rutasAPI.length > 0) {
           console.log('Rutas obtenidas de API:', rutasAPI.length);
           this.rutasDelDia = rutasAPI;
 
-          // Solo establecer la ruta seleccionada si no hay una ya seleccionada
-          if (!this.rutaSeleccionada && this.rutasDelDia.length > 0) {
+          const rutaActual = this.rutaSeleccionada?._id
+            ? this.rutasDelDia.find(r => r._id === this.rutaSeleccionada!._id)
+            : null;
+
+          if (rutaActual) {
+            this.mostrarDetalleRuta(rutaActual);
+          } else if (this.rutasDelDia.length > 0) {
             this.mostrarDetalleRuta(this.rutasDelDia[0]);
           }
+        } else if (!response?.ok) {
+          console.error('Error en la respuesta de getRutasByDate:', response);
+          this.rutasDelDia = rutasPrevias;
+        } else if (rutasPrevias.length > 0) {
+          // Mantener los datos provenientes del calendario si la API no trae rutas
+          this.rutasDelDia = rutasPrevias;
         } else {
-          this.rutasDelDia = [];
-
-        }
-
-      } else {
-        // Solo vaciar si realmente no hay rutas en la API
-        if (this.rutasDelDia.length === 0) {
           console.log('No hay rutas para este día según la API');
           this.rutasDelDia = [];
           this.rutaSeleccionada = null;
           this.partesAsignadosARuta = [];
         }
+      },
+      error: (error) => {
+        console.error('Error al cargar rutas del día desde API:', error);
+        this.rutasDelDia = rutasPrevias;
       }
-    }, error => {
-      console.error('Error al cargar rutas del día desde API:', error);
-      // No vaciar rutasDelDia en caso de error, para mantener las rutas obtenidas de los eventos
     });
 
     // Cargar partes no asignados en paralelo
@@ -322,30 +329,43 @@ export class ListCalendarioComponent implements OnInit {
   }
 
   async cargarRutasDelDia(dateStr: string) {
+    const rutasPrevias = [...this.rutasDelDia];
     try {
       const req = await this.calendarioService.getRutasByDate(dateStr);
-      req.subscribe((response: any) => {
-        console.log(response)
-        if (response && response.ok) {
-          // Normalizar la estructura de respuesta
-          if (response.rutas) {
-            this.rutasDelDia = response.rutas;
-          } else if (response.data && response.data.rutas) {
-            this.rutasDelDia = response.data.rutas;
+      req.subscribe({
+        next: (response: any) => {
+          const rutasAPI = response?.data?.rutas || response?.rutas || [];
+          if (response?.ok) {
+            this.rutasDelDia = rutasAPI;
+
+            if (this.rutasDelDia.length === 0) {
+              this.rutaSeleccionada = null;
+              this.partesAsignadosARuta = [];
+              return;
+            }
+
+            const rutaActual = this.rutaSeleccionada?._id
+              ? this.rutasDelDia.find(r => r._id === this.rutaSeleccionada!._id)
+              : null;
+
+            if (rutaActual) {
+              this.mostrarDetalleRuta(rutaActual);
+            } else {
+              this.mostrarDetalleRuta(this.rutasDelDia[0]);
+            }
           } else {
-            this.rutasDelDia = [];
+            console.error('Error en la respuesta de getRutasByDate:', response);
+            this.rutasDelDia = rutasPrevias;
           }
-        } else {
-          console.error('Error en la respuesta de getRutasByDate:', response);
-          this.rutasDelDia = [];
+        },
+        error: (error: any) => {
+          console.error('Error al cargar rutas del día:', error);
+          this.rutasDelDia = rutasPrevias;
         }
-      }, error => {
-        console.error('Error al cargar rutas del día:', error);
-        this.rutasDelDia = [];
       });
     } catch (error) {
       console.error('Error en cargarRutasDelDia:', error);
-      this.rutasDelDia = [];
+      this.rutasDelDia = rutasPrevias;
     }
   }
 
