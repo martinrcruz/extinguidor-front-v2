@@ -1,45 +1,34 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from 'src/environments/environment';
 import { AuthService } from './auth.service';
-import { Observable, map } from 'rxjs';
-import { ApiResponse } from '../models/api-response.model';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { BaseService } from './base.service';
 import { Alerta } from '../models/alerta.model';
 
 @Injectable({
   providedIn: 'root'
 })
-export class AlertaService {
-
-  private baseUrl = environment.apiUrl;
+export class AlertaService extends BaseService {
+  private readonly endpoint = '/alertas';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService
-  ) {}
-
-  /**
-   * Metodo auxiliar para adjuntar cabeceras con el x-token
-   */
-  private async getHeaders() {
-    return await this.authService.getHeaders();
+    http: HttpClient,
+    authService: AuthService
+  ) {
+    super(http, authService);
   }
-
-  // -----------------------------------------------------
-  // ALERTAS
-  // -----------------------------------------------------
 
   /**
    * Obtener alertas (GET /alertas)
    */
-  async getAlertas(): Promise<Observable<Alerta[]>> {
-    const opts = await this.getHeaders();
-    return this.http.get<ApiResponse<Alerta[]>>(`${this.baseUrl}/alertas`, opts).pipe(
+  getAlertas(): Observable<Alerta[]> {
+    return this.get<{ ok: boolean; data: { alertas: Alerta[] } }>(this.endpoint).pipe(
       map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+        if (response.ok && response.data && response.data.alertas) {
+          return response.data.alertas;
         }
-        throw new Error(response.error || 'Error al obtener las alertas');
+        throw new Error('Error al obtener las alertas');
       })
     );
   }
@@ -47,14 +36,13 @@ export class AlertaService {
   /**
    * Actualizar alerta (PUT /alertas/:id)
    */
-  async updateAlerta(alertaId: string, data: Partial<Alerta>): Promise<Observable<Alerta>> {
-    const opts = await this.getHeaders();
-    return this.http.put<ApiResponse<Alerta>>(`${this.baseUrl}/alertas/${alertaId}`, data, opts).pipe(
+  updateAlerta(alertaId: string, data: Partial<Alerta>): Observable<Alerta> {
+    return this.put<{ ok: boolean; data: { alerta: Alerta } }>(`${this.endpoint}/${alertaId}`, data).pipe(
       map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+        if (response.ok && response.data && response.data.alerta) {
+          return response.data.alerta;
         }
-        throw new Error(response.error || 'Error al actualizar la alerta');
+        throw new Error('Error al actualizar la alerta');
       })
     );
   }

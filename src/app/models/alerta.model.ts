@@ -1,7 +1,6 @@
 export interface Alerta {
     _id: string;
-    state: string;
+    state: 'Pendiente' | 'Cerrado';
     message: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdDate: Date;
 } 

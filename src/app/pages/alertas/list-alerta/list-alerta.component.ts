@@ -17,19 +17,27 @@ export class ListAlertaComponent implements OnInit {
     this.cargarAlertas();
   }
 
-  async cargarAlertas() {
-    const req = await this._alerta.getAlertas(); 
-    req.subscribe((alertas: Alerta[]) => {
-      this.alertas = alertas;
+  cargarAlertas() {
+    this._alerta.getAlertas().subscribe({
+      next: (alertas: Alerta[]) => {
+        this.alertas = alertas;
+      },
+      error: (error) => {
+        console.error('Error al cargar alertas:', error);
+      }
     });
   }
 
-  async cambiarEstado(alerta: Alerta, nuevoEstado: string) {
-    const req = await this._alerta.updateAlerta(alerta._id, { state: nuevoEstado });
-    req.subscribe((alertaActualizada: Alerta) => {
-      const index = this.alertas.findIndex(a => a._id === alertaActualizada._id);
-      if (index !== -1) {
-        this.alertas[index] = alertaActualizada;
+  cambiarEstado(alerta: Alerta, nuevoEstado: string) {
+    this._alerta.updateAlerta(alerta._id, { state: nuevoEstado as 'Pendiente' | 'Cerrado' }).subscribe({
+      next: (alertaActualizada: Alerta) => {
+        const index = this.alertas.findIndex(a => a._id === alertaActualizada._id);
+        if (index !== -1) {
+          this.alertas[index] = alertaActualizada;
+        }
+      },
+      error: (error) => {
+        console.error('Error al actualizar alerta:', error);
       }
     });
   }

@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from 'src/environments/environment';
 import { AuthService } from './auth.service';
 import { Observable } from 'rxjs';
 import { BaseService } from './base.service';
@@ -18,44 +17,38 @@ export class HerramientasService extends BaseService {
     super(http, authService);
   }
 
-
-
   /**
    * Obtener todas las herramientas (GET /herramientas)
    */
-  getHerramientas() :Observable<any> {
-    return this.http.get(`${this.baseUrl}/herramientas`);
+  getHerramientas(): Observable<any> {
+    return this.get<any>(this.endpoint);
   }
 
   /**
    * Obtener herramienta por ID (GET /herramientas/:id)
    */
-  async getHerramientaById(id: string) {
-    const opts = await this.getHeaders();
-    return this.http.get(`${this.baseUrl}/herramientas/${id}`, opts);
+  getHerramientaById(id: string): Observable<any> {
+    return this.get<any>(`${this.endpoint}/${id}`);
   }
 
   /**
    * Crear herramienta (POST /herramientas/create)
    */
-  async createHerramienta(data: any) {
-    const opts = await this.getHeaders();
-    return this.http.post(`${this.baseUrl}/herramientas/create`, data, opts);
+  createHerramienta(data: any): Observable<any> {
+    return this.post<any>(`${this.endpoint}/create`, data);
   }
 
   /**
    * Actualizar herramienta (PUT /herramientas/update/:id)
    */
-  async updateHerramienta(id: string, data: any) {
-    const opts = await this.getHeaders();
-    return this.http.put(`${this.baseUrl}/herramientas/update/${id}`, data, opts);
+  updateHerramienta(id: string, data: any): Observable<any> {
+    return this.put<any>(`${this.endpoint}/update/${id}`, data);
   }
 
   /**
    * Eliminar herramienta (DELETE /herramientas/:id)
    */
-  async deleteHerramienta(id: string) {
-    const opts = await this.getHeaders();
-    return this.http.delete(`${this.baseUrl}/herramientas/${id}`, opts);
+  deleteHerramienta(id: string): Observable<any> {
+    return this.delete<any>(`${this.endpoint}/${id}`);
   }
 } 
