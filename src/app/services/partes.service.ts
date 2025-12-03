@@ -1,32 +1,98 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from 'src/environments/environment';
 import { AuthService } from './auth.service';
-import { Observable, map } from 'rxjs';
-import { ApiResponse } from '../models/api-response.model';
-import { Parte } from '../models/parte.model';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { BaseService } from './base.service';
+import { Parte, Cliente } from '../models/parte.model';
+
+export interface ParteResponse {
+  id: number;
+  title: string;
+  description?: string;
+  date: string;
+  customer?: {
+    id: number;
+    name: string;
+    code: string;
+    email: string;
+  };
+  address?: string;
+  state: string;
+  type?: string;
+  categoria?: string;
+  asignado?: boolean;
+  eliminado?: boolean;
+  periodico?: boolean;
+  frequency?: string;
+  endDate?: string;
+  coordinationMethod?: string;
+  gestiona?: number;
+  facturacion?: number;
+  ruta?: {
+    id: number;
+    name: string;
+    date: string;
+  };
+  worker?: {
+    id: number;
+    name: string;
+    code: string;
+    email: string;
+  };
+  finalizadoTime?: string;
+  comentarios?: Array<{
+    texto: string;
+    fecha: string;
+    usuario: number;
+  }>;
+  documentos?: Array<{
+    nombre: string;
+    url: string;
+    tipo: string;
+    fecha: string;
+  }>;
+  articulos?: Array<{
+    cantidad: number;
+    codigo: string;
+    grupo: string;
+    familia: string;
+    descripcionArticulo: string;
+    precioVenta: number;
+  }>;
+  createdDate?: string;
+  updatedDate?: string;
+}
+
+export interface PartesData {
+  partes: ParteResponse[];
+  totalPages?: number;
+  totalItems?: number;
+}
+
+export interface ParteData {
+  parte: ParteResponse;
+}
 
 @Injectable({
   providedIn: 'root'
 })
-export class PartesService {
-  private baseUrl = environment.apiUrl;
+export class PartesService extends BaseService {
+  private readonly endpoint = '/partes';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService
-  ) {}
-
-  private async getHeaders() {
-    return await this.authService.getHeaders();
+    http: HttpClient,
+    authService: AuthService
+  ) {
+    super(http, authService);
   }
 
   /**
-   * Obtener todas las partes (GET /partes)
+   * Obtener todas las partes (GET /partes?page=0&limit=10)
+   * Retorna: { ok: true, data: { partes: [...], totalPages: X, totalItems: Y } }
    */
-  async getPartes(): Promise<Observable<any>> {
-    const opts = await this.getHeaders();
-    return this.http.get<any>(`${this.baseUrl}/partes`, opts).pipe(
+  getPartes(page: number = 0, limit: number = 10): Observable<PartesData> {
+    return this.get<PartesData>(`${this.endpoint}?page=${page}&limit=${limit}`).pipe(
       map(response => {
         if (response.ok && response.data) {
           return response.data;
@@ -38,15 +104,14 @@ export class PartesService {
 
   /**
    * Obtener parte por ID (GET /partes/:id)
+   * Retorna: { ok: true, data: { parte: {...} } }
    */
-  async getParteById(id: string): Promise<Observable<Parte>> {
-    const opts = await this.getHeaders();
-    return this.http.get<any>(`${this.baseUrl}/partes/${id}`, opts).pipe(
+  getParteById(id: string): Observable<Parte> {
+    return this.get<ParteData>(`${this.endpoint}/${id}`).pipe(
       map(response => {
-        // Manejar formato estandarizado { ok: true, data: { parte } }
-        const parte = response.data?.parte || response.parte;
-        if (response.ok && parte) {
-          return parte;
+        if (response.ok && response.data?.parte) {
+          // Convertir ParteResponse a Parte para compatibilidad
+          return this.convertParteResponseToParte(response.data.parte);
         }
         throw new Error(response.error || 'Error al obtener el parte');
       })
@@ -55,15 +120,13 @@ export class PartesService {
 
   /**
    * Crear parte (POST /partes/create)
+   * Retorna: { ok: true, data: { parte: {...} } }
    */
-  async createParte(data: Partial<Parte>): Promise<Observable<any>> {
-    const opts = await this.getHeaders();
-    return this.http.post<any>(`${this.baseUrl}/partes/create`, data, opts).pipe(
+  createParte(data: Partial<Parte>): Observable<Parte> {
+    return this.post<ParteData>(`${this.endpoint}/create`, data).pipe(
       map(response => {
-        console.log('Respuesta del servidor:', response);
-        if (response.ok) {
-          // El backend devuelve { ok: true, data: { parte: parteDB } }
-          return response;
+        if (response.ok && response.data?.parte) {
+          return this.convertParteResponseToParte(response.data.parte);
         }
         throw new Error(response.error || 'Error al crear el parte');
       })
@@ -71,16 +134,14 @@ export class PartesService {
   }
 
   /**
-   * Actualizar parte (PUT /partes/update/:id)
+   * Actualizar parte (POST /partes/update/{id})
+   * Retorna: { ok: true, data: { parte: {...} } }
    */
-  async updateParte(data: Partial<Parte>): Promise<Observable<Parte>> {
-    const opts = await this.getHeaders();
-    return this.http.post<any>(`${this.baseUrl}/partes/update`, data, opts).pipe(
-      map((response: any) => {
-        // Manejar formato estandarizado { ok: true, data: { parte } }
-        const parte = response.data?.parte || response.data;
-        if (response.ok && parte) {
-          return parte;
+  updateParte(id: string, data: Partial<Parte>): Observable<Parte> {
+    return this.post<ParteData>(`${this.endpoint}/update/${id}`, data).pipe(
+      map(response => {
+        if (response.ok && response.data?.parte) {
+          return this.convertParteResponseToParte(response.data.parte);
         }
         throw new Error(response.error || 'Error al actualizar el parte');
       })
@@ -89,13 +150,13 @@ export class PartesService {
 
   /**
    * Eliminar parte (DELETE /partes/:id)
+   * Retorna: { ok: true, data: { message: "..." } }
    */
-  async deleteParte(id: string): Promise<Observable<any>> {
-    const opts = await this.getHeaders();
-    return this.http.delete<any>(`${this.baseUrl}/partes/${id}`, opts).pipe(
+  deleteParte(id: string): Observable<void> {
+    return this.delete<{ message: string }>(`${this.endpoint}/${id}`).pipe(
       map(response => {
         if (response.ok) {
-          return response;
+          return;
         }
         throw new Error(response.error || 'Error al eliminar el parte');
       })
@@ -103,16 +164,17 @@ export class PartesService {
   }
 
   /**
-   * Obtener partes no asignados (GET /partes/noasignados)
+   * Obtener partes no asignados (GET /partes/noasignados?date=YYYY-MM-DD)
+   * Retorna: { ok: true, data: { partes: [...] } }
    */
-  async getPartesNoAsignados(): Promise<Observable<Parte[]>> {
-    const opts = await this.getHeaders();
-    return this.http.get<any>(`${this.baseUrl}/partes/noasignados`, opts).pipe(
-      map((response: any) => {
-        // Manejar formato estandarizado { ok: true, data: { partes } }
-        const partes = response.data?.partes || response.partes || [];
-        if (response.ok) {
-          return partes;
+  getPartesNoAsignados(date?: string): Observable<Parte[]> {
+    const url = date 
+      ? `${this.endpoint}/noasignados?date=${date}`
+      : `${this.endpoint}/noasignados`;
+    return this.get<PartesData>(url).pipe(
+      map(response => {
+        if (response.ok && response.data?.partes) {
+          return response.data.partes.map(p => this.convertParteResponseToParte(p));
         }
         throw new Error(response.error || 'Error al obtener los partes no asignados');
       })
@@ -121,13 +183,14 @@ export class PartesService {
 
   /**
    * Subir archivo a parte (POST /partes/upload)
+   * Retorna: { ok: true, data: { parte: {...} } }
    */
-  async uploadParteFile(formData: FormData): Promise<Observable<Parte>> {
-    const opts = await this.getHeaders();
-    return this.http.post<ApiResponse<Parte>>(`${this.baseUrl}/partes/upload`, formData, opts).pipe(
+  uploadParteFile(formData: FormData): Observable<Parte> {
+    // Para FormData, pasar isFormData=true
+    return this.post<ParteData>(`${this.endpoint}/upload`, formData, true).pipe(
       map(response => {
-        if (response.ok && response.data) {
-          return response.data;
+        if (response.ok && response.data?.parte) {
+          return this.convertParteResponseToParte(response.data.parte);
         }
         throw new Error(response.error || 'Error al subir el archivo');
       })
@@ -135,16 +198,17 @@ export class PartesService {
   }
 
   /**
-   * Obtener partes por trabajador (GET /partes/worker/:workerId)
+   * Obtener partes por trabajador (GET /partes/worker/:workerId?date=YYYY-MM-DD)
+   * Retorna: { ok: true, data: { partes: [...] } }
    */
-  async getPartesByWorker(workerId: string): Promise<Observable<Parte[]>> {
-    const opts = await this.getHeaders();
-    return this.http.get<any>(`${this.baseUrl}/partes/worker/${workerId}`, opts).pipe(
-      map((response: any) => {
-        // Manejar formato estandarizado { ok: true, data: { partes } }
-        const partes = response.data?.partes || response.partes || [];
-        if (response.ok) {
-          return partes;
+  getPartesByWorker(workerId: string, date?: string): Observable<Parte[]> {
+    const url = date
+      ? `${this.endpoint}/worker/${workerId}?date=${date}`
+      : `${this.endpoint}/worker/${workerId}`;
+    return this.get<PartesData>(url).pipe(
+      map(response => {
+        if (response.ok && response.data?.partes) {
+          return response.data.partes.map(p => this.convertParteResponseToParte(p));
         }
         throw new Error(response.error || 'Error al obtener los partes del trabajador');
       })
@@ -153,18 +217,69 @@ export class PartesService {
 
   /**
    * Actualizar estado de parte (PUT /partes/:id/status)
+   * Retorna: { ok: true, data: { parte: {...} } }
    */
-  async updateParteStatus(parteId: string, status: string): Promise<Observable<Parte>> {
-    const opts = await this.getHeaders();
-    return this.http.put<any>(`${this.baseUrl}/partes/${parteId}/status`, { status }, opts).pipe(
-      map((response: any) => {
-        // Manejar formato estandarizado { ok: true, data: { parte } }
-        const parte = response.data?.parte || response.parte || response.data;
-        if (response.ok && parte) {
-          return parte;
+  updateParteStatus(parteId: string, status: string): Observable<Parte> {
+    return this.put<ParteData>(`${this.endpoint}/${parteId}/status`, { status }).pipe(
+      map(response => {
+        if (response.ok && response.data?.parte) {
+          return this.convertParteResponseToParte(response.data.parte);
         }
         throw new Error(response.error || 'Error al actualizar el estado del parte');
       })
     );
+  }
+
+  /**
+   * Convierte ParteResponse (DTO del backend) a Parte (modelo del frontend)
+   */
+  public convertParteResponseToParte(parteResponse: ParteResponse): Parte {
+    return {
+      _id: parteResponse.id?.toString(),
+      id: parteResponse.id,
+      title: parteResponse.title,
+      description: parteResponse.description || '',
+      date: parteResponse.date,
+      customer: parteResponse.customer ? {
+        _id: parteResponse.customer.id?.toString(),
+        name: parteResponse.customer.name,
+        email: parteResponse.customer.email,
+        nifCif: '',
+        phone: '',
+        address: '',
+        code: parteResponse.customer.code
+      } as Cliente : undefined,
+      address: parteResponse.address,
+      state: parteResponse.state,
+      type: parteResponse.type,
+      categoria: parteResponse.categoria,
+      asignado: parteResponse.asignado,
+      eliminado: parteResponse.eliminado,
+      periodico: parteResponse.periodico,
+      frequency: parteResponse.frequency,
+      endDate: parteResponse.endDate,
+      coordinationMethod: parteResponse.coordinationMethod,
+      gestiona: parteResponse.gestiona,
+      facturacion: parteResponse.facturacion,
+      ruta: parteResponse.ruta ? {
+        _id: parteResponse.ruta.id?.toString(),
+        id: parteResponse.ruta.id,
+        name: parteResponse.ruta.name,
+        date: parteResponse.ruta.date
+      } : undefined,
+      worker: parteResponse.worker ? {
+        _id: parteResponse.worker.id?.toString(),
+        id: parteResponse.worker.id,
+        name: parteResponse.worker.name,
+        code: parteResponse.worker.code,
+        email: parteResponse.worker.email
+      } : undefined,
+      finalizadoTime: parteResponse.finalizadoTime,
+      comentarios: parteResponse.comentarios,
+      documentos: parteResponse.documentos,
+      articulos: parteResponse.articulos,
+      createdDate: parteResponse.createdDate,
+      updatedDate: parteResponse.updatedDate
+    } as Parte;
   }
 } 

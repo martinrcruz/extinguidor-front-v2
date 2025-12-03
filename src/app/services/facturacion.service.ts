@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable } from 'rxjs';
-import { ApiResponse } from '../interfaces/api-response.interface';
+import { ApiResponse } from '../models/api-response.model';
+import { BaseService } from './base.service';
+import { AuthService } from './auth.service';
 
 export interface Facturacion {
   _id: string;
@@ -24,32 +26,37 @@ export interface FacturacionResponse {
   facturacion: Facturacion[];
 }
 @Injectable({ providedIn: 'root' })
-export class FacturacionService {
-  private apiUrl = `${environment.apiUrl}/facturacion`;
+export class FacturacionService extends BaseService {
+  private readonly endpoint = '/facturacion';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    http: HttpClient,
+    authService: AuthService
+  ) {
+    super(http, authService);
+  }
 
   getFacturacion() {
-    return this.http.get<any>(this.apiUrl);
+    return this.get<any>(this.endpoint);
   }
 
   getFacturacionById(id: string) {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+    return this.get<any>(`${this.endpoint}/${id}`);
   }
 
   createFacturacion(facturacion: Partial<Facturacion>) {
-    return this.http.post<any>(`${this.apiUrl}/create`, facturacion);
+    return this.post<any>(`${this.endpoint}/create`, facturacion);
   }
 
   updateFacturacion(id: string, facturacion: Partial<Facturacion>) {
-    return this.http.put<any>(`${this.apiUrl}/update/${id}`, facturacion);
+    return this.put<any>(`${this.endpoint}/update/${id}`, facturacion);
   }
 
   deleteFacturacion(id: string) {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    return this.delete<any>(`${this.endpoint}/${id}`);
   }
 
   getFacturacionByRuta(rutaId: string) {
-    return this.http.get<any>(`${this.apiUrl}/ruta/${rutaId}`);
+    return this.get<any>(`${this.endpoint}/ruta/${rutaId}`);
   }
 }

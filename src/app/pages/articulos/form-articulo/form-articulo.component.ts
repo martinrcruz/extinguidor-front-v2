@@ -46,17 +46,22 @@ export class FormArticuloComponent implements OnInit {
 
   async cargarArticulo(id: string) {
     try {
-      const req = await this._articulo.getArticuloById(id);
-      req.subscribe((res: any) => {
-        if (res.ok && res.articulo) {
-          this.articuloForm.patchValue({
-            codigo: res.articulo.codigo,
-            descripcionArticulo: res.articulo.descripcionArticulo,
-            grupo: res.articulo.grupo,
-            familia: res.articulo.familia,
-            cantidad: res.articulo.cantidad,
-            precioVenta: res.articulo.precioVenta
-          });
+      const req = this._articulo.getArticuloById(id);
+      req.subscribe({
+        next: (articulo: any) => {
+          if (articulo) {
+            this.articuloForm.patchValue({
+              codigo: articulo.codigo,
+              descripcionArticulo: articulo.descripcionArticulo,
+              grupo: articulo.grupo,
+              familia: articulo.familia,
+              cantidad: articulo.cantidad,
+              precioVenta: articulo.precioVenta
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar articulo:', error);
         }
       });
     } catch (error) {

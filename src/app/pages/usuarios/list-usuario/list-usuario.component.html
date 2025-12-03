@@ -45,8 +45,14 @@
       </ion-item>
     </div>
 
+    <!-- Loading Spinner -->
+    <div *ngIf="loading" class="ion-text-center ion-padding">
+      <ion-spinner></ion-spinner>
+      <p>Cargando usuarios...</p>
+    </div>
+
     <!-- Lista de Usuarios -->
-    <div class="usuarios-list">
+    <div class="usuarios-list" *ngIf="!loading">
       <div *ngIf="filteredUsuarios.length > 0; else emptyState">
         <ion-card class="usuario-card" *ngFor="let u of filteredUsuarios">
           <ion-card-header>

@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { NavController } from '@ionic/angular';
+import { firstValueFrom } from 'rxjs';
 import { PartesService } from 'src/app/services/partes.service';
 import { RutasService } from 'src/app/services/rutas.service';
 import { CustomerService } from 'src/app/services/customer.service';
@@ -26,6 +27,7 @@ export class FormParteComponent implements OnInit {
   // Listas para selects
   customersList: any[] = [];   // "Customer" unificado
   rutasDisponibles: any[] = [];
+  rutasLoading: boolean = false; // Flag para indicar carga de rutas
 
   customers: any[] = []; // lista de clientes
   minDate: string = '';  // p.ej. '2023-08-01'
@@ -33,6 +35,7 @@ export class FormParteComponent implements OnInit {
   clientModalOpen = false;
   filteredCustomers: any[] = [];
   searchClientTxt: string = '';
+  customersLoading: boolean = false; // Flag para indicar carga de clientes
   
   // Flag para evitar disparar el listener durante la carga inicial
   isLoadingParte = false;
@@ -58,7 +61,8 @@ export class FormParteComponent implements OnInit {
     private _parte: PartesService,
     private _rutas: RutasService,
     private _customer: CustomerService,
-    private _articulos: ArticuloService
+    private _articulos: ArticuloService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
@@ -71,8 +75,21 @@ export class FormParteComponent implements OnInit {
         // Cargar el parte primero para obtener su fecha
         this.loadParte(this.parteId);
       } else {
-        // Si no estamos editando, cargar rutas del mes actual
-        this.loadRutas();
+        // Si no estamos editando, establecer fecha inicial (mes actual) y cargar rutas
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const initialDate = `${year}-${month}-${day}`;
+        
+        // Establecer fecha inicial en el formulario
+        this.parteForm.patchValue({ date: initialDate }, { emitEvent: false });
+        
+        // Forzar detección de cambios para mostrar el loader
+        this.cdr.detectChanges();
+        
+        // Cargar rutas del mes actual
+        this.loadRutasByDate(initialDate);
       }
     });
     
@@ -111,6 +128,11 @@ export class FormParteComponent implements OnInit {
 
   get articulosFormArray() {
     return this.parteForm.get('articulos') as FormArray;
+  }
+
+  get hasDateSelected(): boolean {
+    const date = this.parteForm.get('date')?.value;
+    return !!date && date !== '';
   }
 
   crearArticuloFormGroup() {
@@ -166,17 +188,57 @@ export class FormParteComponent implements OnInit {
     }
   }
 
-  async loadCustomers() {
-    const req = await this._customer.getCustomers();
-    req.subscribe((resp: any) => {
-      if (resp.ok && resp.data && resp.data.customers) {
-        this.customersList = resp.data.customers;
-        this.filteredCustomers = [...this.customersList];
+  async loadCustomers(showLoader: boolean = false) {
+    // Solo mostrar loader si se solicita explícitamente (cuando el modal está abierto)
+    if (showLoader) {
+      this.customersLoading = true;
+      // Forzar detección de cambios para mostrar el loader inmediatamente
+      this.cdr.detectChanges();
+    }
+    
+    try {
+      const customers = await firstValueFrom(this._customer.getCustomers());
+      
+      // Normalizar los IDs: asegurar que cada cliente tenga tanto id como _id
+      this.customersList = (customers || []).map((c: any) => ({
+        ...c,
+        _id: c._id || c.id?.toString() || String(c.id),
+        id: c.id || (c._id ? parseInt(c._id, 10) : c.id)
+      }));
+      
+      // Filtrar solo clientes activos si existe el campo active
+      this.customersList = this.customersList.filter((c: any) => c.active !== false);
+      
+      this.filteredCustomers = [...this.customersList];
+      
+      if (showLoader) {
+        this.customersLoading = false;
       }
-    });
+      
+      // Forzar detección de cambios
+      this.cdr.detectChanges();
+      
+      // Si el modal está abierto, actualizar también
+      if (this.clientModalOpen) {
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error al cargar clientes:', error);
+      this.customersList = [];
+      this.filteredCustomers = [];
+      if (showLoader) {
+        this.customersLoading = false;
+      }
+      this.cdr.detectChanges();
+    }
   }
 
   async loadRutas() {
+    this.rutasLoading = true;
+    this.cdr.detectChanges();
+    
     // Generamos la fecha "YYYY-MM-01" para el mes actual
     const now = new Date();
     const year = now.getFullYear();
@@ -185,15 +247,60 @@ export class FormParteComponent implements OnInit {
 
     // Llamamos a getRutasDisponibles(firstDayOfMonth)
     const rReq = await this._rutas.getRutasDisponibles(firstDayOfMonth);
-    rReq.subscribe((res: any) => {
-      if (res.ok && res.rutas) {
-        this.rutasDisponibles = res.rutas;
-        console.log('Rutas cargadas:', this.rutasDisponibles);
+    rReq.subscribe({
+      next: (rutas: any[]) => {
+        // El servicio ya procesó la respuesta y devuelve directamente el array
+        this.rutasDisponibles = rutas || [];
+        this.rutasLoading = false;
+        this.cdr.detectChanges();
+        console.log('Rutas cargadas:', this.rutasDisponibles.length);
+      },
+      error: (error) => {
+        console.error('Error al cargar rutas:', error);
+        this.rutasDisponibles = [];
+        this.rutasLoading = false;
+        this.cdr.detectChanges();
+      },
+      complete: () => {
+        // Asegurar que siempre se desactive el loading al completar
+        if (this.rutasLoading) {
+          this.rutasLoading = false;
+          this.cdr.detectChanges();
+        }
       }
     });
   }
 
   async loadRutasByDate(selectedDate: string) {
+    if (!selectedDate) {
+      this.rutasLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+    
+    this.rutasLoading = true;
+    // Forzar detección de cambios para mostrar el loader inmediatamente
+    this.cdr.detectChanges();
+    
+    // Timeout de seguridad para evitar carga infinita (10 segundos)
+    let loadingTimeout: any = setTimeout(() => {
+      if (this.rutasLoading) {
+        console.warn('Timeout al cargar rutas, desactivando loader');
+        this.rutasLoading = false;
+        this.cdr.detectChanges();
+      }
+    }, 10000);
+    
+    // Función helper para limpiar el timeout y desactivar loading
+    const finishLoading = () => {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
+      this.rutasLoading = false;
+      this.cdr.detectChanges();
+    };
+    
     // Convertir la fecha seleccionada al primer día del mes
     const dateObj = parseDateAsLocal(selectedDate) || new Date(selectedDate);
     const year = dateObj.getFullYear();
@@ -206,149 +313,270 @@ export class FormParteComponent implements OnInit {
     // Cargar rutas del mes seleccionado
     try {
       const rReq = this._rutas.getRutasDisponibles(firstDayOfMonth);
-      rReq.subscribe((res: any) => {
-        if (res.ok && res.rutas) {
-          this.rutasDisponibles = res.rutas;
-          console.log('Rutas cargadas para el mes seleccionado:', this.rutasDisponibles);
+      
+      // Calcular si necesitamos cargar también el mes actual
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const firstDayCurrentMonth = `${currentYear}-${currentMonth}-01`;
+      const needsCurrentMonth = firstDayCurrentMonth !== firstDayOfMonth;
+      
+      let firstRequestDone = false;
+      let secondRequestDone = false;
+      
+      const checkAndFinish = () => {
+        if (firstRequestDone && (!needsCurrentMonth || secondRequestDone)) {
+          finishLoading();
+        }
+      };
+      
+      rReq.subscribe({
+        next: (rutas: any[]) => {
+          // El servicio ya procesó la respuesta y devuelve directamente el array
+          this.rutasDisponibles = rutas || [];
+          console.log('Rutas cargadas para el mes seleccionado:', this.rutasDisponibles.length);
+          firstRequestDone = true;
 
           // También cargar rutas del mes actual si es diferente
-          const now = new Date();
-          const currentYear = now.getFullYear();
-          const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-          const firstDayCurrentMonth = `${currentYear}-${currentMonth}-01`;
-
-          // Solo cargar si es diferente al mes seleccionado
-          if (firstDayCurrentMonth !== firstDayOfMonth) {
+          if (needsCurrentMonth) {
             const req2 = this._rutas.getRutasDisponibles(firstDayCurrentMonth);
-            req2.subscribe((res2: any) => {
-              if (res2.ok && res2.rutas) {
+            req2.subscribe({
+              next: (rutasActuales: any[]) => {
                 // Agregar rutas que no estén ya en la lista
-                res2.rutas.forEach((ruta: any) => {
-                  if (!this.rutasDisponibles.find(r => r._id === ruta._id)) {
+                (rutasActuales || []).forEach((ruta: any) => {
+                  const rutaId = ruta._id || ruta.id;
+                  if (!this.rutasDisponibles.find(r => (r._id || r.id) === rutaId)) {
                     this.rutasDisponibles.push(ruta);
                   }
                 });
-                console.log('Rutas disponibles totales:', this.rutasDisponibles);
+                console.log('Rutas disponibles totales:', this.rutasDisponibles.length);
+              },
+              error: (error) => {
+                console.error('Error al cargar rutas del mes actual:', error);
+                secondRequestDone = true;
+                checkAndFinish();
+              },
+              complete: () => {
+                secondRequestDone = true;
+                checkAndFinish();
               }
             });
+          } else {
+            // Si es el mismo mes, ya terminamos
+            checkAndFinish();
           }
+        },
+        error: (error) => {
+          console.error('Error al cargar rutas:', error);
+          this.rutasDisponibles = [];
+          firstRequestDone = true;
+          checkAndFinish();
+        },
+        complete: () => {
+          firstRequestDone = true;
+          checkAndFinish();
         }
       });
     } catch (error) {
       console.error('Error al cargar rutas:', error);
+      this.rutasDisponibles = [];
+      finishLoading();
     }
   }
 
-  async loadParte(id: string) {
-    this.isLoadingParte = true; // Activar flag para evitar disparo del listener
-    
-    const req = await this._parte.getParteById(id);
-    req.subscribe((res: any) => {
-      if (!res) return;
-
-      const p = res;                         // alias corto
-      const fechaIso = p.date ? isoDateOnly(p.date) : '';
-
-      console.log('Parte cargado:', p);
-      console.log('Ruta del parte:', p.ruta);
-
-      /* ----------- rellenar FormGroup ----------- */
-      this.parteForm.patchValue({
-        title: p.title ?? '',
-        description: p.description,
-        address: p.address ?? '',
-        facturacion: p.facturacion,
-        state: p.state,
-        type: p.type,
-        categoria: p.categoria,
-        date: fechaIso,
-        customer: p.customer?._id ?? '',
-        ruta: p.ruta?._id ?? p.ruta ?? '',
-        coordinationMethod: p.coordinationMethod,
-        gestiona: p.gestiona,
-        periodico: p.periodico,
-        frequency: p.frequency ?? 'Mensual',
-        endDate: p.endDate ? isoDateOnly(p.endDate) : ''
-      });
-
-      /* mostrar el nombre del cliente en el input de búsqueda */
-      this.searchClientTxt = p.customer?.name ?? '';
-
-      // Cargar rutas del mes del parte y también del mes actual
-      this.loadRutasForParte(p.date, p.ruta);
-
-      /* ----------- cargar artículos si existen ----------- */
-      if (p.articulos?.length) {
-        /* vaciamos el array por si ya hay items */
-        while (this.articulosFormArray.length) this.articulosFormArray.removeAt(0);
-
-        p.articulos.forEach((a: any) => {
-          const g = this.crearArticuloFormGroup();
-          g.patchValue({
-            cantidad: a.cantidad,
-            codigo: a.codigo,
-            grupo: a.grupo,
-            familia: a.familia,
-            descripcionArticulo: a.descripcionArticulo,
-            precioVenta: a.precioVenta,
-            articuloId: a.articuloId || ''
-          });
-          this.articulosFormArray.push(g);
-        });
-      }
-      
-      this.isLoadingParte = false; // Desactivar flag después de cargar
-    });
-  }
-
   async loadRutasForParte(parteDate: string, rutaAsignada: any) {
+    this.rutasLoading = true;
+    this.cdr.detectChanges();
+    
     // Cargar rutas del mes del parte
     const parteDateObj = parseDateAsLocal(parteDate);
-    if (!parteDateObj) return;
+    if (!parteDateObj) {
+      this.rutasLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
     const year = parteDateObj.getFullYear();
     const month = String(parteDateObj.getMonth() + 1).padStart(2, '0');
     const firstDayOfMonth = `${year}-${month}-01`;
 
     // Cargar rutas del mes del parte
     const req = await this._rutas.getRutasDisponibles(firstDayOfMonth);
-    req.subscribe((res: any) => {
-      if (res.ok && res.rutas) {
-        this.rutasDisponibles = [...res.rutas];
-        console.log('Rutas cargadas para el mes del parte:', this.rutasDisponibles);
+    req.subscribe({
+      next: (rutas: any[]) => {
+        // El servicio ya procesó la respuesta y devuelve directamente el array
+        this.rutasDisponibles = [...(rutas || [])];
+        console.log('Rutas cargadas para el mes del parte:', this.rutasDisponibles.length);
 
         // Si hay una ruta asignada, asegurarse de que esté en la lista
         if (rutaAsignada) {
-          const rutaId = rutaAsignada._id || rutaAsignada;
-          const rutaExists = this.rutasDisponibles.find(r => r._id === rutaId);
-          if (!rutaExists && rutaAsignada._id) {
+          const rutaId = rutaAsignada._id || rutaAsignada.id || rutaAsignada;
+          const rutaExists = this.rutasDisponibles.find(r => (r._id || r.id) === rutaId);
+          if (!rutaExists && (rutaAsignada._id || rutaAsignada.id)) {
             // Si la ruta no está en la lista, agregarla
             this.rutasDisponibles.push(rutaAsignada);
           }
         }
-      }
-    });
 
-    // También cargar rutas del mes actual
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-    const firstDayCurrentMonth = `${currentYear}-${currentMonth}-01`;
+        // También cargar rutas del mes actual
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const firstDayCurrentMonth = `${currentYear}-${currentMonth}-01`;
 
-    // Solo cargar si es diferente al mes del parte
-    if (firstDayCurrentMonth !== firstDayOfMonth) {
-      const req2 = await this._rutas.getRutasDisponibles(firstDayCurrentMonth);
-      req2.subscribe((res: any) => {
-        if (res.ok && res.rutas) {
-          // Agregar rutas que no estén ya en la lista
-          res.rutas.forEach((ruta: any) => {
-            if (!this.rutasDisponibles.find(r => r._id === ruta._id)) {
-              this.rutasDisponibles.push(ruta);
+        // Solo cargar si es diferente al mes del parte
+        if (firstDayCurrentMonth !== firstDayOfMonth) {
+          const req2 = this._rutas.getRutasDisponibles(firstDayCurrentMonth);
+          req2.subscribe({
+            next: (rutasActuales: any[]) => {
+              // Agregar rutas que no estén ya en la lista
+              (rutasActuales || []).forEach((ruta: any) => {
+                const rutaId = ruta._id || ruta.id;
+                if (!this.rutasDisponibles.find(r => (r._id || r.id) === rutaId)) {
+                  this.rutasDisponibles.push(ruta);
+                }
+              });
+              this.rutasLoading = false;
+              this.cdr.detectChanges();
+              console.log('Rutas disponibles totales:', this.rutasDisponibles.length);
+            },
+            error: (error) => {
+              console.error('Error al cargar rutas del mes actual:', error);
+              this.rutasLoading = false;
+              this.cdr.detectChanges();
+            },
+            complete: () => {
+              // Asegurar que siempre se desactive el loading al completar
+              if (this.rutasLoading) {
+                this.rutasLoading = false;
+                this.cdr.detectChanges();
+              }
             }
           });
-          console.log('Rutas disponibles totales:', this.rutasDisponibles);
+        } else {
+          this.rutasLoading = false;
+          this.cdr.detectChanges();
         }
-      });
-    }
+      },
+      error: (error) => {
+        console.error('Error al cargar rutas del mes del parte:', error);
+        this.rutasDisponibles = [];
+        this.rutasLoading = false;
+        this.cdr.detectChanges();
+      },
+      complete: () => {
+        // Asegurar que siempre se desactive el loading al completar
+        if (this.rutasLoading) {
+          this.rutasLoading = false;
+          this.cdr.detectChanges();
+        }
+      }
+    });
+  }
+
+  async loadParte(id: string) {
+    this.isLoadingParte = true; // Activar flag para evitar disparo del listener
+    
+    const req = this._parte.getParteById(id);
+    req.subscribe({
+      next: (p: any) => {
+        if (!p) {
+          this.isLoadingParte = false;
+          return;
+        }
+
+        const fechaIso = p.date ? isoDateOnly(p.date) : '';
+
+        console.log('Parte cargado:', p);
+        console.log('Ruta del parte:', p.ruta);
+        console.log('Cliente del parte:', p.customer);
+
+        // Manejar customer ID (puede ser objeto o ID directo)
+        const customerId = p.customer?._id || p.customer?.id?.toString() || p.customer || '';
+        
+        // Manejar ruta ID (puede ser objeto o ID directo)
+        const rutaId = p.ruta?._id || p.ruta?.id?.toString() || p.ruta || '';
+        
+        // Mapear coordinationMethod desde enum del backend a string del frontend
+        const mapCoordinationMethodFromBackend = (method: string): string => {
+          const mapping: { [key: string]: string } = {
+            'LLAMAR_ANTES': 'Llamar antes',
+            'COORDINAR_EMAIL': 'Coordinar por email',
+            'COORDINAR_HORARIOS': 'Coordinar según horarios'
+          };
+          return mapping[method] || method || 'Coordinar según horarios';
+        };
+        
+        // Normalizar el ID de la ruta para el select
+        const normalizedRutaId = rutaId ? rutaId.toString() : '';
+
+        /* ----------- rellenar FormGroup ----------- */
+        this.parteForm.patchValue({
+          title: p.title ?? '',
+          description: p.description ?? '',
+          address: p.address ?? '',
+          facturacion: p.facturacion ?? 0,
+          state: p.state ?? '',
+          type: p.type ?? '',
+          categoria: p.categoria ?? '',
+          date: fechaIso,
+          customer: customerId,
+          ruta: normalizedRutaId,
+          coordinationMethod: mapCoordinationMethodFromBackend(p.coordinationMethod || ''),
+          gestiona: p.gestiona ?? 0,
+          periodico: p.periodico ?? false,
+          frequency: p.frequency ?? 'Mensual',
+          endDate: p.endDate ? isoDateOnly(p.endDate) : ''
+        });
+
+        /* mostrar el nombre del cliente en el input de búsqueda */
+        this.searchClientTxt = p.customer?.name ?? '';
+        
+        // Buscar el cliente en la lista para asegurar que esté disponible
+        if (customerId) {
+          const customerInList = this.customersList.find(c => 
+            (c._id || c.id?.toString()) === customerId.toString()
+          );
+          if (!customerInList && p.customer) {
+            // Si el cliente no está en la lista, agregarlo
+            this.customersList.push({
+              ...p.customer,
+              _id: customerId.toString(),
+              id: typeof customerId === 'string' ? parseInt(customerId, 10) : customerId
+            });
+            this.filteredCustomers = [...this.customersList];
+          }
+        }
+
+        // Cargar rutas del mes del parte y también del mes actual
+        this.loadRutasForParte(p.date, p.ruta);
+
+        /* ----------- cargar artículos si existen ----------- */
+        if (p.articulos?.length) {
+          /* vaciamos el array por si ya hay items */
+          while (this.articulosFormArray.length) this.articulosFormArray.removeAt(0);
+
+          p.articulos.forEach((a: any) => {
+            const g = this.crearArticuloFormGroup();
+            g.patchValue({
+              cantidad: a.cantidad ?? 0,
+              codigo: a.codigo ?? '',
+              grupo: a.grupo ?? '',
+              familia: a.familia ?? '',
+              descripcionArticulo: a.descripcionArticulo ?? '',
+              precioVenta: a.precioVenta ?? 0,
+              articuloId: a.articuloId || a._id || a.id?.toString() || ''
+            });
+            this.articulosFormArray.push(g);
+          });
+        }
+        
+        this.isLoadingParte = false; // Desactivar flag después de cargar
+      },
+      error: (error) => {
+        console.error('Error al cargar parte:', error);
+        this.isLoadingParte = false;
+      }
+    });
   }
 
   async onSave() {
@@ -356,20 +584,62 @@ export class FormParteComponent implements OnInit {
 
     const data = this.parteForm.value;
 
-
-
-
     // Verificar en front date >= minDate
     const fechaData = parseDateAsLocal(data.date);
     const fechaMin = parseDateAsLocal(this.minDate);
-    if (!fechaData || !fechaMin || fechaData < fechaMin) {
-      console.error('Fecha anterior al mes actual');
-      return;
-    }
+    // if (!fechaData || !fechaMin || fechaData < fechaMin) {
+    //   console.error('Fecha anterior al mes actual');
+    //   return;
+    // }
+
+    // Función para mapear coordinationMethod a enum del backend
+    const mapCoordinationMethod = (method: string): string => {
+      const mapping: { [key: string]: string } = {
+        'Llamar antes': 'LLAMAR_ANTES',
+        'Coordinar por email': 'COORDINAR_EMAIL',
+        'Coordinar según horarios': 'COORDINAR_HORARIOS'
+      };
+      return mapping[method] || method;
+    };
+
+    // Función para convertir ID a número
+    const toLongId = (id: any): number | null => {
+      if (!id || id === '') return null;
+      const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+      return isNaN(numId) ? null : numId;
+    };
 
     if (!this.isEdit) {
-      const body = { ...this.parteForm.value };
-      if (!body.ruta || body.ruta === '') delete body.ruta;
+      const body: any = { ...this.parteForm.value };
+      
+      // Mapear customer a customerId (Long)
+      const customerId = toLongId(body.customer);
+      if (!customerId) {
+        console.error('El cliente es obligatorio');
+        return;
+      }
+      body.customerId = customerId;
+      delete body.customer;
+      
+      // Mapear ruta a rutaId (Long) - opcional
+      if (body.ruta && body.ruta !== '') {
+        const rutaId = toLongId(body.ruta);
+        if (rutaId) {
+          body.rutaId = rutaId;
+        } else {
+          delete body.rutaId;
+        }
+      } else {
+        delete body.rutaId;
+      }
+      delete body.ruta;
+      
+      // Mapear coordinationMethod a enum
+      if (body.coordinationMethod) {
+        body.coordinationMethod = mapCoordinationMethod(body.coordinationMethod);
+      }
+      
+      // Limpiar campos opcionales
       if (!body.endDate || body.endDate === '') delete body.endDate;
       if (!body.frequency || body.frequency === '') delete body.frequency;
       
@@ -396,8 +666,36 @@ export class FormParteComponent implements OnInit {
       });
     } else {
       // Actualizar parte
-      const body = { ...this.parteForm.value, _id: this.parteId };
-      if (!body.ruta || body.ruta === '') delete body.ruta;
+      const body: any = { ...this.parteForm.value };
+      
+      // Mapear customer a customerId (Long)
+      const customerId = toLongId(body.customer);
+      if (!customerId) {
+        console.error('El cliente es obligatorio');
+        return;
+      }
+      body.customerId = customerId;
+      delete body.customer;
+      
+      // Mapear ruta a rutaId (Long) - opcional
+      if (body.ruta && body.ruta !== '') {
+        const rutaId = toLongId(body.ruta);
+        if (rutaId) {
+          body.rutaId = rutaId;
+        } else {
+          delete body.rutaId;
+        }
+      } else {
+        delete body.rutaId;
+      }
+      delete body.ruta;
+      
+      // Mapear coordinationMethod a enum
+      if (body.coordinationMethod) {
+        body.coordinationMethod = mapCoordinationMethod(body.coordinationMethod);
+      }
+      
+      // Limpiar campos opcionales
       if (!body.endDate || body.endDate === '') delete body.endDate;
       if (!body.frequency || body.frequency === '') delete body.frequency;
       
@@ -409,11 +707,16 @@ export class FormParteComponent implements OnInit {
         });
       }
       
-      const req = await this._parte.updateParte(body);
+      // El ID se pasa en la URL, no en el body para update
+      const req = await this._parte.updateParte(this.parteId!, body);
       req.subscribe((resp: any) => {
         if (resp.ok) {
           this.navCtrl.navigateRoot('/partes');
+        } else {
+          console.error('Error al actualizar parte:', resp.error, resp.detalles);
         }
+      }, (error) => {
+        console.error('Error en la petición:', error);
       });
     }
   }
@@ -429,7 +732,26 @@ export class FormParteComponent implements OnInit {
   }
 
   openClientModal() {
+    // Abrir el modal primero para mostrar el loader
     this.clientModalOpen = true;
+    this.cdr.detectChanges();
+    
+    // Asegurarse de que filteredCustomers tenga todos los clientes cuando se abre el modal
+    // Si no hay clientes cargados, cargarlos primero
+    if (this.customersList.length === 0) {
+      // Cargar clientes mostrando el loader
+      this.loadCustomers(true).then(() => {
+        this.filteredCustomers = [...this.customersList];
+        this.searchClientTxt = ''; // Limpiar búsqueda
+        this.cdr.detectChanges();
+      });
+    } else {
+      // Actualizar filteredCustomers antes de abrir el modal
+      this.filteredCustomers = [...this.customersList];
+      this.searchClientTxt = ''; // Limpiar búsqueda
+      this.customersLoading = false; // Asegurar que no esté en loading si ya hay clientes
+      this.cdr.detectChanges();
+    }
   }
   closeClientModal() {
     this.clientModalOpen = false;
@@ -437,17 +759,44 @@ export class FormParteComponent implements OnInit {
 
   filterCustomers(event: any) {
     const txt = this.searchClientTxt.toLowerCase().trim();
+    if (!txt) {
+      this.filteredCustomers = [...this.customersList];
+      return;
+    }
     this.filteredCustomers = this.customersList.filter(c =>
-      c.name.toLowerCase().includes(txt) ||
-      c.nifCif.toLowerCase().includes(txt)
+      (c.name && c.name.toLowerCase().includes(txt)) ||
+      (c.nifCif && c.nifCif.toLowerCase().includes(txt))
     );
   }
 
   selectCustomer(c: any) {
-    // Asignamos al form
-    this.parteForm.patchValue({ customer: c._id });
-    this.searchClientTxt = c.name; // para mostrarlo en el IonInput
+    // Asignamos al form - manejar tanto _id como id
+    const customerId = c._id || c.id || c;
+    this.parteForm.patchValue({ customer: customerId });
+    this.searchClientTxt = c.name || ''; // para mostrarlo en el IonInput
     this.clientModalOpen = false;
+  }
+
+  trackByCustomerId(index: number, customer: any): any {
+    return customer._id || customer.id || index;
+  }
+
+  trackByRutaId(index: number, ruta: any): any {
+    return ruta._id || ruta.id || index;
+  }
+
+  getRutaId(ruta: any): string {
+    return (ruta._id || ruta.id || '').toString();
+  }
+
+  getRutaDisplayName(ruta: any): string {
+    if (ruta.name?.name) {
+      return ruta.name.name;
+    }
+    if (typeof ruta.name === 'string') {
+      return ruta.name;
+    }
+    return 'Sin nombre';
   }
 
   cancel() {

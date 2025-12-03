@@ -23,13 +23,14 @@ export class PartesTabsComponent implements OnInit {
 
   async cargarPartes() {
     // Ajusta tu backend para filtrar
-    const req1 = await this._partes.getPartes();
-    req1.subscribe((partes: Parte[]) => {
-      this.partesAsignados = partes;
+    this._partes.getPartes(0, 100).subscribe((response) => {
+      if (response.partes) {
+        // Convertir ParteResponse[] a Parte[] usando el método del servicio
+        this.partesAsignados = response.partes.map(p => this._partes.convertParteResponseToParte(p));
+      }
     });
 
-    const req2 = await this._partes.getPartesNoAsignados();
-    req2.subscribe((partes: Parte[]) => {
+    this._partes.getPartesNoAsignados().subscribe((partes: Parte[]) => {
       this.partesNoAsignados = partes;
     });
   }

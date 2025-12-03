@@ -109,6 +109,18 @@ const routes: Routes = [
       import('./pages/articulos/articulos.module').then(m => m.ArticulosModule),
     canActivate: [AuthGuard, AdminGuard]
   },
+  {
+    path: 'alertas',
+    loadChildren: () =>
+      import('./pages/alertas/alertas.module').then(m => m.AlertasModule),
+    canActivate: [AuthGuard, AdminGuard]
+  },
+  {
+    path: 'dashboard',
+    loadChildren: () =>
+      import('./pages/dashboard/dashboard.module').then(m => m.DashboardModule),
+    canActivate: [AuthGuard, AdminGuard]
+  },
 
   // ---------------------------------
   // Ruta comodín

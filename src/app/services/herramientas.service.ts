@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { BaseService } from './base.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class HerramientasService extends BaseService {
-  private readonly endpoint = '/herramientas';
+  private readonly endpoint = '/material'; // El backend usa /material, no /herramientas
 
   constructor(
     http: HttpClient,
@@ -18,10 +19,29 @@ export class HerramientasService extends BaseService {
   }
 
   /**
-   * Obtener todas las herramientas (GET /herramientas)
+   * Obtener todas las herramientas (GET /material)
+   * Retorna: { ok: true, data: [...] } donde data es un array directamente
    */
   getHerramientas(): Observable<any> {
-    return this.get<any>(this.endpoint);
+    return this.get<any>(this.endpoint).pipe(
+      map(response => {
+        if (response.ok && response.data) {
+          // El backend devuelve data como array directamente, pero necesitamos envolverlo
+          // para mantener compatibilidad con el código existente
+          return {
+            ok: true,
+            data: {
+              herramientas: Array.isArray(response.data) ? response.data : []
+            }
+          };
+        }
+        return {
+          ok: false,
+          data: { herramientas: [] },
+          error: response.error || 'Error al obtener las herramientas'
+        };
+      })
+    );
   }
 
   /**

@@ -45,8 +45,14 @@
       </ion-item>
     </div>
 
+    <!-- Loading Spinner -->
+    <div *ngIf="loading" class="ion-text-center ion-padding">
+      <ion-spinner></ion-spinner>
+      <p>Cargando zonas...</p>
+    </div>
+
     <!-- Lista de Zonas -->
-    <div class="zonas-list">
+    <div class="zonas-list" *ngIf="!loading">
       <div *ngIf="filteredZonas.length > 0; else emptyState">
         <ion-card class="zona-card" *ngFor="let z of filteredZonas">
           <ion-card-header>

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { AuthService } from './auth.service';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiResponse } from '../models/api-response.model';
 import { BaseService } from './base.service';
 
@@ -38,34 +39,90 @@ export class MaterialesService extends BaseService {
   }
 
   getMaterials(): Observable<Material[]> {
-    return this.get<Material[]>(this.endpoint);
+    return this.get<{ materials: Material[] }>(this.endpoint).pipe(
+      map(response => {
+        if (response.ok && response.data?.materials) {
+          return response.data.materials;
+        }
+        throw new Error(response.error || 'Error al obtener los materiales');
+      })
+    );
   }
 
   createMaterial(data: Partial<Material>): Observable<Material> {
-    return this.post<Material>(`${this.endpoint}/create`, data);
+    return this.post<{ material: Material }>(`${this.endpoint}/create`, data).pipe(
+      map(response => {
+        if (response.ok && response.data?.material) {
+          return response.data.material;
+        }
+        throw new Error(response.error || 'Error al crear el material');
+      })
+    );
   }
 
   getMaterialById(id: string): Observable<Material> {
-    return this.get<Material>(`${this.endpoint}/${id}`);
+    return this.get<{ material: Material }>(`${this.endpoint}/${id}`).pipe(
+      map(response => {
+        if (response.ok && response.data?.material) {
+          return response.data.material;
+        }
+        throw new Error(response.error || 'Error al obtener el material');
+      })
+    );
   }
 
-  updateMaterial(data: Partial<Material>): Observable<Material> {
-    return this.put<Material>(`${this.endpoint}/update`, data);
+  updateMaterial(id: string, data: Partial<Material>): Observable<Material> {
+    return this.put<{ material: Material }>(`${this.endpoint}/update/${id}`, data).pipe(
+      map(response => {
+        if (response.ok && response.data?.material) {
+          return response.data.material;
+        }
+        throw new Error(response.error || 'Error al actualizar el material');
+      })
+    );
   }
 
-  deleteMaterial(id: string): Observable<Material> {
-    return this.delete<Material>(`${this.endpoint}/${id}`);
+  deleteMaterial(id: string): Observable<void> {
+    return this.delete<{ message: string }>(`${this.endpoint}/${id}`).pipe(
+      map(response => {
+        if (response.ok) {
+          return;
+        }
+        throw new Error(response.error || 'Error al eliminar el material');
+      })
+    );
   }
 
   getMaterialPartes(): Observable<MaterialParte[]> {
-    return this.get<MaterialParte[]>(this.materialParteEndpoint);
+    return this.get<{ materialPartes: MaterialParte[] }>(this.materialParteEndpoint).pipe(
+      map(response => {
+        if (response.ok && response.data?.materialPartes) {
+          return response.data.materialPartes;
+        }
+        throw new Error(response.error || 'Error al obtener los materiales de parte');
+      })
+    );
   }
 
   createMaterialParte(data: Partial<MaterialParte>): Observable<MaterialParte> {
-    return this.post<MaterialParte>(`${this.materialParteEndpoint}/create`, data);
+    return this.post<{ materialParte: MaterialParte }>(`${this.materialParteEndpoint}/create`, data).pipe(
+      map(response => {
+        if (response.ok && response.data?.materialParte) {
+          return response.data.materialParte;
+        }
+        throw new Error(response.error || 'Error al crear el material de parte');
+      })
+    );
   }
 
   getMaterialParteByRuta(rutaId: string): Observable<MaterialParte[]> {
-    return this.get<MaterialParte[]>(`${this.materialParteEndpoint}/${rutaId}`);
+    return this.get<{ materialPartes: MaterialParte[] }>(`${this.materialParteEndpoint}/${rutaId}`).pipe(
+      map(response => {
+        if (response.ok && response.data?.materialPartes) {
+          return response.data.materialPartes;
+        }
+        throw new Error(response.error || 'Error al obtener los materiales de parte por ruta');
+      })
+    );
   }
 } 

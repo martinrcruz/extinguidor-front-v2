@@ -33,12 +33,14 @@ export class FormContratoComponent implements OnInit {
 
   ngOnInit() {
     this.initForm();
-    this.contractId = this.route.snapshot.paramMap.get('id');
-    if (this.contractId) {
-      this.isEdit = true;
-      this.cargarContrato(this.contractId);
-    }
-    this.loadClientes();
+    // Cargar clientes primero, luego verificar si es edición
+    this.loadClientes().then(() => {
+      this.contractId = this.route.snapshot.paramMap.get('id');
+      if (this.contractId) {
+        this.isEdit = true;
+        this.cargarContrato(this.contractId);
+      }
+    });
   }
 
   initForm() {
@@ -60,24 +62,29 @@ export class FormContratoComponent implements OnInit {
 
   cargarContrato(id: string) {
     try {
-      this._contrato.getContractById(id).subscribe((res: any) => {
-        // Ajusta según tu backend
-        console.log(res)
-        if (res.data) {
-          this.contractForm.patchValue({
-            code: res.data.code,
-            customerId: res.data.customerId,
-            name: res.data.name,
-            startDate: res.data.startDate ? isoDateOnly(res.data.startDate) : '',
-            endDate: res.data.endDate ? isoDateOnly(res.data.endDate) : '',
-            type: res.data.type,
-            averageTime: res.data.averageTime,
-            delegation: res.data.delegation,
-            revisionFrequency: res.data.revisionFrequency,
-            address: res.data.address,
-            zone: res.data.zone,
-            total: res.data.total
-          });
+      this._contrato.getContractById(id).subscribe({
+        next: (contract: any) => {
+          console.log('Contrato cargado:', contract);
+          if (contract) {
+            // El servicio devuelve directamente el contrato
+            this.contractForm.patchValue({
+              code: contract.code,
+              customerId: contract.customerId?._id || contract.customerId || contract.customer?._id || contract.customer,
+              name: contract.name,
+              startDate: contract.startDate ? isoDateOnly(contract.startDate) : '',
+              endDate: contract.endDate ? isoDateOnly(contract.endDate) : '',
+              type: contract.type,
+              averageTime: contract.averageTime,
+              delegation: contract.delegation,
+              revisionFrequency: contract.revisionFrequency,
+              address: contract.address,
+              zone: contract.zone?._id || contract.zone,
+              total: contract.total
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar contrato:', error);
         }
       });
     } catch (error) {
@@ -116,19 +123,26 @@ export class FormContratoComponent implements OnInit {
     this.navCtrl.navigateBack('/contratos');
   }
 
-  loadClientes() {
+  async loadClientes(): Promise<void> {
     this.loading = true;
-    this.clientesService.getCustomers().subscribe({
-      next: (response: any) => {
-        if (response && response.ok && response.data) {
-          this.clientes = response.data.customers;
+    return new Promise((resolve, reject) => {
+      this.clientesService.getCustomers().subscribe({
+        next: (response: any) => {
+          if (response && response.ok && response.data) {
+            this.clientes = response.data.customers || [];
+          } else {
+            this.clientes = [];
+          }
+          this.loading = false;
+          resolve();
+        },
+        error: (error: any) => {
+          console.error('Error al cargar clientes', error);
+          this.clientes = [];
+          this.loading = false;
+          reject(error);
         }
-        this.loading = false;
-      },
-      error: (error: any) => {
-        console.error('Error al cargar clientes', error);
-        this.loading = false;
-      }
+      });
     });
   }
 

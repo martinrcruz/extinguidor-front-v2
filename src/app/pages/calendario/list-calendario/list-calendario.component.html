@@ -106,7 +106,7 @@
             <ion-item (click)="toggleRuta(r)" [ngClass]="{'ruta-expanded': rutaSeleccionada === r}">
               <ion-icon slot="start" [name]="getTipoRutaIcon(r.type)"></ion-icon>
               <ion-label>
-                <h3>{{ r.name?.name || 'Ruta sin nombre' }}</h3>
+                <h3>{{ getRutaName(r.name) }}</h3>
                 <p *ngIf="rutaSeleccionada !== r">{{ r.date }} - {{ r.type }}</p>
                 <p *ngIf="rutaSeleccionada === r" style="color: white">{{ r.date }} - {{ r.type }}</p>
               </ion-label>
@@ -117,7 +117,7 @@
       
             <!-- Detalles inmediatamente debajo -->
             <div *ngIf="rutaSeleccionada === r" class="ruta-detalle">
-              <h3>{{ r.name?.name || 'Ruta sin nombre' }}</h3>
+              <h3>{{ getRutaName(r.name) }}</h3>
               <div class="tipo-ruta" [ngClass]="getTipoRutaClass(r.type)">
                 <ion-icon [name]="getTipoRutaIcon(r.type)"></ion-icon>
                 {{ r.type }}
@@ -125,7 +125,7 @@
       
               <div class="info-block">
                 <ion-icon name="car-outline"></ion-icon>
-                <strong>Vehículo:</strong> {{ r.vehicle?.brand }} - {{ r.vehicle?.matricula }}
+                <strong>Vehículo:</strong> {{ getVehicleInfo(r.vehicle) }}
               </div>
               
               <div class="workers-info">
@@ -303,7 +303,7 @@
                     <ion-col>
                       <p class="parte-details">
                         <ion-icon name="business-outline"></ion-icon>
-                        <strong>Cliente:</strong> {{ p.customer.name }}
+                        <strong>Cliente:</strong> {{ getCustomerName(p) }}
                       </p>
                     </ion-col>
                   </ion-row>

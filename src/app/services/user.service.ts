@@ -27,8 +27,9 @@ export class UserService {
   /** helpers */
   private async opts() { return this.auth.getHeaders(); }
 
-  createUser(u: User) {
-    return this.http.post<any>(`${this.baseUrl}/create`, u);
+  async createUser(u: User) {
+    const opts = await this.opts();
+    return this.http.post<any>(`${this.baseUrl}/create`, u, opts);
   }
 
   async updateUser(u: User) {
@@ -36,20 +37,24 @@ export class UserService {
     return this.http.put<ApiEnvelope<{user: User; token: string}>>(`${this.baseUrl}/update`, u, opts);
   }
 
-  getUserById(id: string) {
-    return this.http.get<any>(`${this.baseUrl}/${id}`);
+  async getUserById(id: string) {
+    const opts = await this.opts();
+    return this.http.get<any>(`${this.baseUrl}/${id}`, opts);
   }
 
-  getLoggedUser() {
-    return this.http.get<any>(this.baseUrl);
+  async getLoggedUser() {
+    const opts = await this.opts();
+    return this.http.get<any>(this.baseUrl, opts);
   }
 
-  getAllUsers() {
-    return this.http.get<any>(`${this.baseUrl}/list`);
+  async getAllUsers() {
+    const opts = await this.opts();
+    return this.http.get<any>(`${this.baseUrl}/list`, opts);
   }
 
-  getWorkers() {
-    return this.http.get<any>(`${this.baseUrl}/worker`);
+  async getWorkers() {
+    const opts = await this.opts();
+    return this.http.get<any>(`${this.baseUrl}/worker`, opts);
   }
 
   /** NEW */

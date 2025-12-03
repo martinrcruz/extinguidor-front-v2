@@ -1,36 +1,93 @@
 <ion-header>
-  <ion-toolbar>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
     <ion-title>Alertas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cargarAlertas()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<!-- <div class="breadcrumb">
-  <ion-icon name="home-outline" color="gray"></ion-icon>
-  <span>/</span>
-  <span>Alertas</span>
-</div> -->
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
 
-<ion-content class="ion-padding">
-  <ion-card *ngFor="let al of alertas" class="alerta-card">
-    <ion-card-header>
-      <ion-card-title>{{ al.message }}</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-grid>
-        <ion-row>
-          <ion-col>
-            <strong>Estado:</strong> {{ al.state }}
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col>
-            <ion-select [value]="al.state" (ionChange)="cambiarEstado(al, $event.detail.value)">
-              <ion-select-option value="Pendiente">Pendiente</ion-select-option>
-              <ion-select-option value="Cerrado">Cerrado</ion-select-option>
-            </ion-select>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-card-content>
-  </ion-card>
+  <!-- Loading -->
+  <div *ngIf="loading" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+    <p>Cargando alertas...</p>
+  </div>
+
+  <!-- Lista de Alertas -->
+  <div *ngIf="!loading" class="ion-padding">
+    <ion-card *ngFor="let alerta of alertas" class="alerta-card">
+      <ion-card-header>
+        <div class="card-header-content">
+          <ion-card-title>{{ alerta.message }}</ion-card-title>
+          <ion-chip [color]="getPriorityColor(alerta.priority)">
+            <ion-label>{{ alerta.priority || 'Media' }}</ion-label>
+          </ion-chip>
+        </div>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <p *ngIf="alerta.description" class="description">{{ alerta.description }}</p>
+        
+        <div class="alerta-actions">
+          <ion-chip [color]="getStateColor(alerta.state)">
+            <ion-icon name="ellipse"></ion-icon>
+            <ion-label>{{ alerta.state }}</ion-label>
+          </ion-chip>
+          
+          <div class="action-buttons">
+            <ion-button 
+              size="small" 
+              fill="outline"
+              [color]="alerta.state === 'Pendiente' ? 'success' : 'warning'"
+              (click)="cambiarEstado(alerta, alerta.state === 'Pendiente' ? 'Cerrado' : 'Pendiente')">
+              <ion-icon 
+                [name]="alerta.state === 'Pendiente' ? 'checkmark-circle-outline' : 'arrow-undo-outline'" 
+                slot="start">
+              </ion-icon>
+              {{ alerta.state === 'Pendiente' ? 'Cerrar' : 'Reabrir' }}
+            </ion-button>
+            
+            <ion-button 
+              size="small" 
+              fill="outline" 
+              color="danger"
+              (click)="eliminarAlerta(alerta)">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+
+        <div class="alerta-meta" *ngIf="alerta.createdDate">
+          <ion-note>
+            <ion-icon name="time-outline"></ion-icon>
+            Creado: {{ alerta.createdDate | date:'short' }}
+          </ion-note>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Empty State -->
+    <div *ngIf="alertas.length === 0 && !loading" class="ion-text-center ion-padding">
+      <ion-icon name="notifications-off-outline" size="large" color="medium"></ion-icon>
+      <h3>No hay alertas</h3>
+      <p>No se encontraron alertas en el sistema</p>
+    </div>
+  </div>
+
+  <!-- FAB Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="primary" (click)="crearAlerta()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>

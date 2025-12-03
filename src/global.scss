@@ -36,10 +36,9 @@
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import "@ionic/angular/css/palettes/dark.system.css";
 
-
-// Colores principales del proyecto
+// Colores principales del proyecto - UNIFICADOS desde variables.scss
 :root {
-  --primary-color: #BA392B; // headers y botones principales
+  --primary-color: #BD1E1E; // Rojo corporativo unificado
   --highlight-color: #3E363F; // resaltados sobrios
 }
 
@@ -89,7 +88,6 @@ ion-toolbar {
   color: white !important;
 }
 
-
 .button-inner {
   color: white !important;
 }
@@ -99,7 +97,7 @@ ion-menu-button {
 }
 
 .footer-toolbar {
-  --background: #e74c3c !important;
+  --background: var(--primary-color) !important;
   color: #ffffff;
 
   .logout-item {
@@ -122,7 +120,7 @@ ion-menu-button {
   }
   
   .logout-button {
-    --background: #e74c3c !important;
+    --background: var(--primary-color) !important;
     --border-radius: 0;
     --padding-top: 12px;
     --padding-bottom: 12px;
@@ -138,7 +136,7 @@ ion-menu-button {
     }
     
     &:hover {
-      --background: #a3332a;
+      --background: #a51b1b;
     }
   }
 }
@@ -164,3 +162,134 @@ ion-menu-button {
  * - image-preview: Contenedor para previsualización de imágenes
  * - form-error: Estilo para mensajes de error en formularios
  */
+
+/*
+ * UX/UI Improvements - Estados y feedback visual
+ */
+
+// Loading states
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+// Estados de botones mejorados
+ion-button {
+  transition: all 0.3s ease;
+  
+  &:hover:not([disabled]) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active:not([disabled]) {
+    transform: translateY(0);
+  }
+  
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Cards con efecto hover
+ion-card {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+}
+
+// Inputs con mejor feedback
+ion-input, ion-textarea, ion-select {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  
+  &.ion-valid {
+    --border-color: var(--color-success);
+  }
+  
+  &.ion-invalid.ion-touched {
+    --border-color: var(--color-danger);
+  }
+}
+
+// Mensajes de error en formularios
+.error-message {
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+// Estados vacíos
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-light);
+  
+  ion-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  p {
+    font-size: 0.938rem;
+  }
+}
+
+// Badges y etiquetas
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.813rem;
+  font-weight: 500;
+  display: inline-block;
+  
+  &.badge-success {
+    background-color: var(--color-success);
+    color: white;
+  }
+  
+  &.badge-warning {
+    background-color: var(--color-warning);
+    color: #333;
+  }
+  
+  &.badge-danger {
+    background-color: var(--color-danger);
+    color: white;
+  }
+  
+  &.badge-primary {
+    background-color: var(--color-primary);
+    color: white;
+  }
+}
+
+// Animaciones suaves
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease;
+}

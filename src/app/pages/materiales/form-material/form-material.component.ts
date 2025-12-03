@@ -44,15 +44,20 @@ export class FormMaterialComponent  implements OnInit {
 
   async cargarMaterial(id: string) {
     try {
-      const req = await this._material.getMaterialById(id); // Ajusta si tu APIService lo define
-      req.subscribe((res: any) => {
-        if (res.ok && res.material) {
-          this.materialForm.patchValue({
-            name:        res.material.name,
-            code:        res.material.code,
-            description: res.material.description,
-            type:        res.material.type
-          });
+      const req = this._material.getMaterialById(id);
+      req.subscribe({
+        next: (material: any) => {
+          if (material) {
+            this.materialForm.patchValue({
+              name:        material.name,
+              code:        material.code,
+              description: material.description,
+              type:        material.type
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar material:', error);
         }
       });
     } catch (error) {
@@ -72,8 +77,12 @@ export class FormMaterialComponent  implements OnInit {
         });
       } else {
         // Editar
+        if (!this.materialId) {
+          console.error('No se proporcionó el ID del material');
+          return;
+        }
         data._id = this.materialId;
-        const req = await this._material.updateMaterial(data);
+        const req = await this._material.updateMaterial(this.materialId, data);
         req.subscribe(() => {
           this.navCtrl.navigateRoot('/materiales');
         });

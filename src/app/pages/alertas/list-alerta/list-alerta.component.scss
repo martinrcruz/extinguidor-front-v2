@@ -1,0 +1,65 @@
+.alerta-card {
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.description {
+  margin: 12px 0;
+  color: var(--ion-color-medium);
+  font-size: 14px;
+}
+
+.alerta-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.alerta-meta {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-light);
+
+  ion-note {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+
+    ion-icon {
+      font-size: 14px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .alerta-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .action-buttons {
+    width: 100%;
+    
+    ion-button {
+      flex: 1;
+    }
+  }
+}
+

@@ -45,8 +45,21 @@
       </app-date-picker>
     </div>
 
+    <!-- Loading Spinner -->
+    <div *ngIf="loading" class="ion-text-center ion-padding">
+      <ion-spinner></ion-spinner>
+      <p>Cargando rutas...</p>
+    </div>
+
+    <!-- Debug Info (temporal) -->
+    <!-- <div *ngIf="!loading" class="ion-padding" style="background: #f0f0f0; margin: 10px; border-radius: 5px;">
+      <p><strong>Debug:</strong></p>
+      <p>Rutas totales: {{ rutas.length }}</p>
+      <p>Rutas filtradas: {{ filteredRutas.length }}</p>
+    </div> -->
+
     <!-- Lista de Rutas -->
-    <div class="rutas-list">
+    <div class="rutas-list" *ngIf="!loading">
       <div *ngIf="filteredRutas.length > 0; else emptyState">
         <ion-card class="ruta-card" *ngFor="let r of filteredRutas">
           <ion-card-header>
@@ -82,11 +95,11 @@
             </div>
             
             <div class="ruta-actions">
-              <ion-button fill="outline" (click)="editarRuta(r._id)">
+              <ion-button fill="outline" (click)="editarRuta(r.id || r._id)">
                 <ion-icon name="create-outline" slot="start"></ion-icon>
                 Editar
               </ion-button>
-              <ion-button color="danger" (click)="eliminarRuta(r._id)">
+              <ion-button color="danger" (click)="eliminarRuta(r.id || r._id)">
                 <ion-icon name="trash-outline" slot="start"></ion-icon>
                 Eliminar
               </ion-button>

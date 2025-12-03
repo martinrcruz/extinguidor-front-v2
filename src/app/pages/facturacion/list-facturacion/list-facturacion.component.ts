@@ -40,22 +40,30 @@ export class ListFacturacionComponent implements OnInit {
       const response = await firstValueFrom(this.facturacionService.getFacturacion());
       console.log(response)
       if (response && response.ok && response.data) {
-        this.facturaciones = response.data.facturacion;
+        this.facturaciones = response.data.facturacion || [];
         this.calcularTotal();
+        this.error = ''; // Limpiar error si la carga fue exitosa
       } else {
         this.facturaciones = [];
         this.totalFacturado = 0;
+        // Solo mostrar error si realmente no hay datos
+        if (!response || !response.ok) {
+          this.error = 'Error al cargar las facturaciones';
+        }
       }
     } catch (error) {
       console.error('Error al cargar facturaciones:', error);
-      this.error = 'Error al cargar las facturaciones';
-      const toast = await this.toastCtrl.create({
-        message: this.error,
-        duration: 3000,
-        position: 'bottom',
-        color: 'danger'
-      });
-      await toast.present();
+      // Solo mostrar error si no hay datos cargados
+      if (this.facturaciones.length === 0) {
+        this.error = 'Error al cargar las facturaciones';
+        const toast = await this.toastCtrl.create({
+          message: this.error,
+          duration: 3000,
+          position: 'bottom',
+          color: 'danger'
+        });
+        await toast.present();
+      }
     } finally {
       await loading.dismiss();
     }

@@ -13,6 +13,7 @@ export class ListZonaComponent  implements OnInit {
   zonas: any[] = [];
   filteredZonas: any[] = [];
   selectedStatus: string = '';
+  loading: boolean = false;
 
   constructor(
     private _zonas: ZonasService,
@@ -22,24 +23,40 @@ export class ListZonaComponent  implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.cargarZonas();
+    // Solo inicializar variables, no cargar datos aquí
+    // Los datos se cargarán en ionViewDidEnter que es el hook correcto para Ionic
   }
 
   ionViewDidEnter(){
-   this.cargarZonas();
+    // Este hook se ejecuta cada vez que la página entra en vista
+    // Es el lugar correcto para cargar datos en Ionic
+    this.cargarZonas();
   }
 
   async cargarZonas() {
+    this.loading = true;
     try {
       const req = await this._zonas.getZones();
       req.subscribe((res: any) => {
-        if (res.ok) {
-          this.zonas = res.data.zones;
+        if (res.ok && res.data) {
+          this.zonas = res.data.zones || [];
           this.applyFilters();
+        } else {
+          this.zonas = [];
+          this.filteredZonas = [];
         }
+        this.loading = false;
+      }, (error) => {
+        console.error('Error al cargar zonas:', error);
+        this.zonas = [];
+        this.filteredZonas = [];
+        this.loading = false;
       });
     } catch (error) {
       console.error('Error al cargar zonas:', error);
+      this.zonas = [];
+      this.filteredZonas = [];
+      this.loading = false;
     }
   }
 

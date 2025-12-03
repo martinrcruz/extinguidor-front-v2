@@ -1,5 +1,6 @@
 export interface Ruta {
   _id: string;
+  id:string;
   name: {
     _id: string;
     name: string;

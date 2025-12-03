@@ -32,13 +32,15 @@ export class FormClienteComponent implements OnInit {
 
   ngOnInit() {
     this.initForm();
-    this.cargarZonas();
-    this.route.paramMap.subscribe(params => {
-      this.customerId = params.get('id');
-      if (this.customerId) {
-        this.isEdit = true;
-        this.cargarCliente(this.customerId);
-      }
+    // Cargar zonas primero, luego verificar si es edición
+    this.cargarZonas().then(() => {
+      this.route.paramMap.subscribe(params => {
+        this.customerId = params.get('id');
+        if (this.customerId) {
+          this.isEdit = true;
+          this.cargarCliente(this.customerId);
+        }
+      });
     });
   }
 
@@ -57,16 +59,17 @@ export class FormClienteComponent implements OnInit {
     });
   }
 
-  async cargarZonas() {
+  async cargarZonas(): Promise<void> {
     try {
       const response = await firstValueFrom(this.zonasService.getZones());
       if (response && response.ok && response.data) {
-        this.zonas = response.data.zones;
+        this.zonas = response.data.zones || [];
       } else {
         this.zonas = [];
       }
     } catch (error) {
       console.error('Error al cargar zonas:', error);
+      this.zonas = [];
     }
   }
 
@@ -78,21 +81,22 @@ export class FormClienteComponent implements OnInit {
 
     try {
       const response = await firstValueFrom(this.clientesService.getCustomerById(id));
-      console.log(response)
+      console.log('Cliente cargado:', response);
       if (response && response.ok && response.data) {
+        const customer = response.data.customer || response.data;
         this.clienteForm.patchValue({
-          name: response.data.customer.name,
-          email: response.data.customer.email,
-          nifCif: response.data.customer.nifCif,
-          phone: response.data.customer.phone,
-          address: response.data.customer.address,
-          zone: response.data.customer.zone._id,
-          code: response.data.customer.code,
-          contactName: response.data.customer.contactName,
-          MI: response.data.customer.MI,
-          tipo: response.data.customer.tipo
+          name: customer.name,
+          email: customer.email,
+          nifCif: customer.nifCif,
+          phone: customer.phone,
+          address: customer.address,
+          zone: customer.zone?._id || customer.zone?.id?.toString() || customer.zone || '',
+          code: customer.code,
+          contactName: customer.contactName,
+          MI: customer.MI || customer.mi,
+          tipo: customer.tipo || 'Normal'
         });
-        this.previewImage = response.data.customer.photo || null;
+        this.previewImage = customer.photo || null;
       }
     } catch (error) {
       console.error('Error al cargar cliente:', error);

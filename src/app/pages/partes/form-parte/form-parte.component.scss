@@ -213,3 +213,127 @@ ion-checkbox {
     color: var(--ion-color-dark);
   }
 }
+
+// Estilos para el loader de rutas
+.rutas-loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  margin-top: 8px;
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  ion-spinner {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .loading-text {
+    font-size: 0.9rem;
+    color: var(--ion-color-primary);
+    font-weight: 500;
+  }
+}
+
+// Contenedor de información cuando no hay fecha seleccionada
+.rutas-info-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  margin-top: 8px;
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.08) 0%, rgba(var(--ion-color-primary-rgb), 0.03) 100%);
+  border-radius: 12px;
+  border: 1px dashed rgba(var(--ion-color-primary-rgb), 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  ion-icon {
+    font-size: 32px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  
+  .info-content {
+    flex: 1;
+    
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ion-color-primary);
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--ion-color-medium);
+      line-height: 1.5;
+    }
+  }
+}
+
+// Contenedor cuando no hay rutas disponibles
+.rutas-empty-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  margin-top: 8px;
+  background: linear-gradient(135deg, rgba(var(--ion-color-warning-rgb), 0.05) 0%, rgba(var(--ion-color-warning-rgb), 0.02) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(var(--ion-color-warning-rgb), 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  ion-icon {
+    font-size: 32px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  
+  .empty-content {
+    flex: 1;
+    
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ion-color-warning);
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--ion-color-medium);
+      line-height: 1.5;
+    }
+  }
+}
+
+// Estilos para el loader de clientes
+.customers-loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  margin-top: 20px;
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.05) 0%, rgba(var(--ion-color-primary-rgb), 0.02) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  ion-spinner {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .loading-text {
+    font-size: 0.95rem;
+    color: var(--ion-color-primary);
+    font-weight: 500;
+  }
+}

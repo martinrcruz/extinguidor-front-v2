@@ -28,11 +28,14 @@ export class ListVehiculoComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.cargarVehiculos();
+    // Solo inicializar variables, no cargar datos aquí
+    // Los datos se cargarán en ionViewDidEnter que es el hook correcto para Ionic
   }
   
   ionViewDidEnter(){
-   this.cargarVehiculos();
+    // Este hook se ejecuta cada vez que la página entra en vista
+    // Es el lugar correcto para cargar datos en Ionic
+    this.cargarVehiculos();
   }
 
   async cargarVehiculos() {
@@ -42,9 +45,10 @@ export class ListVehiculoComponent implements OnInit {
     await loading.present();
 
     try {
-      const response :any= await firstValueFrom(this.vehiculoService.getVehicles());
+      const response = await firstValueFrom(this.vehiculoService.getVehicles());
       console.log(response)
-      this.vehiculos = response.data;
+      // getVehicles() ya devuelve un array directamente, no response.data
+      this.vehiculos = Array.isArray(response) ? response : [];
       this.filteredVehiculos = [...this.vehiculos];
     } catch (error) {
       console.error('Error al cargar vehículos:', error);

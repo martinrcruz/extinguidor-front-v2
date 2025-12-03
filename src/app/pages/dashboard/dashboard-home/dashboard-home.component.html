@@ -1,0 +1,210 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="loadDashboardStats()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="loading" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+    <p>Cargando estadísticas...</p>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!loading && stats" class="dashboard-container">
+    
+    <!-- Resumen General -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Resumen General</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-grid>
+          <ion-row>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="document-text-outline" color="primary"></ion-icon>
+                <h3>{{ stats.totalPartes }}</h3>
+                <p>Total Partes</p>
+              </div>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
+                <h3>{{ stats.partesCompletados }}</h3>
+                <p>Completados</p>
+              </div>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="time-outline" color="warning"></ion-icon>
+                <h3>{{ stats.partesPendientes }}</h3>
+                <p>Pendientes</p>
+              </div>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="hourglass-outline" color="tertiary"></ion-icon>
+                <h3>{{ stats.partesEnProgreso }}</h3>
+                <p>En Progreso</p>
+              </div>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+
+        <!-- Progress Bar -->
+        <div class="ion-margin-top">
+          <ion-label>Progreso de Partes</ion-label>
+          <ion-progress-bar 
+            [value]="getPartesCompletadosPercentage() / 100" 
+            color="success">
+          </ion-progress-bar>
+          <p class="ion-text-center">{{ getPartesCompletadosPercentage().toFixed(1) }}% Completado</p>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Clientes y Rutas -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Operaciones</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-grid>
+          <ion-row>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="people-outline" color="primary"></ion-icon>
+                <h3>{{ stats.totalClientes }}</h3>
+                <p>Clientes</p>
+              </div>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="map-outline" color="secondary"></ion-icon>
+                <h3>{{ stats.totalRutas }}</h3>
+                <p>Total Rutas</p>
+              </div>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="navigate-outline" color="success"></ion-icon>
+                <h3>{{ stats.rutasActivas }}</h3>
+                <p>Rutas Activas</p>
+              </div>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <div class="stat-card">
+                <ion-icon name="person-outline" color="tertiary"></ion-icon>
+                <h3>{{ stats.totalTrabajadores }}</h3>
+                <p>Trabajadores</p>
+              </div>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Facturación -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Facturación</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-grid>
+          <ion-row>
+            <ion-col size="12" size-md="4">
+              <div class="stat-card">
+                <ion-icon name="cash-outline" color="success"></ion-icon>
+                <h3>{{ stats.facturacionMensual | currency:'EUR' }}</h3>
+                <p>Mensual</p>
+              </div>
+            </ion-col>
+            <ion-col size="12" size-md="4">
+              <div class="stat-card">
+                <ion-icon name="wallet-outline" color="primary"></ion-icon>
+                <h3>{{ stats.facturacionAnual | currency:'EUR' }}</h3>
+                <p>Anual</p>
+              </div>
+            </ion-col>
+            <ion-col size="12" size-md="4">
+              <div class="stat-card">
+                <ion-icon name="alert-circle-outline" color="danger"></ion-icon>
+                <h3>{{ stats.alertasActivas }}</h3>
+                <p>Alertas Activas</p>
+              </div>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Eficiencia -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Eficiencia del Sistema</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="eficiencia-container">
+          <div class="eficiencia-circle" [attr.data-color]="getEficienciaColor(stats.eficienciaPromedio || 0)">
+            <h2>{{ (stats.eficienciaPromedio || 0).toFixed(1) }}%</h2>
+            <p>Eficiencia Promedio</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Estadísticas de Trabajadores (solo ADMIN) -->
+    <ion-card *ngIf="userRole === 'ADMIN' && workersStats.length > 0">
+      <ion-card-header>
+        <ion-card-title>Rendimiento de Trabajadores</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let worker of workersStats">
+            <ion-avatar slot="start">
+              <ion-icon name="person-circle-outline" size="large"></ion-icon>
+            </ion-avatar>
+            <ion-label>
+              <h2>{{ worker.workerName }}</h2>
+              <p>{{ worker.workerEmail }}</p>
+              <div class="worker-stats">
+                <ion-chip [color]="getEficienciaColor(worker.eficiencia || 0)">
+                  <ion-label>Eficiencia: {{ (worker.eficiencia || 0).toFixed(1) }}%</ion-label>
+                </ion-chip>
+                <ion-chip color="primary">
+                  <ion-label>{{ worker.partesCompletados }}/{{ worker.totalPartesAsignados }} partes</ion-label>
+                </ion-chip>
+              </div>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !stats" class="ion-text-center ion-padding">
+    <ion-icon name="stats-chart-outline" size="large" color="medium"></ion-icon>
+    <h3>No hay estadísticas disponibles</h3>
+    <p>No se pudieron cargar las estadísticas del sistema</p>
+    <ion-button (click)="loadDashboardStats()">
+      Reintentar
+    </ion-button>
+  </div>
+
+</ion-content>

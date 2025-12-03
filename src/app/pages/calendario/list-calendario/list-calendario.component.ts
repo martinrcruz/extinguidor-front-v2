@@ -1,6 +1,6 @@
-import { Component, OnInit, TemplateRef, ViewChild, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, TemplateRef, ViewChild, Input } from '@angular/core';
 import { CalendarMonthViewDay, CalendarEvent } from 'angular-calendar';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { subMonths, addMonths, subYears, addYears } from 'date-fns';
 import { NavController } from '@ionic/angular';
 import { CalendarioService } from '../../../services/calendario.service';
@@ -9,7 +9,7 @@ import { ZonasService } from '../../../services/zonas.service';
 import { SharedModule } from 'src/app/shared/shared.module';
 import { Ruta } from '../../../models/ruta.model';
 import { Parte } from '../../../models/parte.model';
-import { ApiResponse } from '../../../interfaces/api-response.interface';
+import { ApiResponse } from '../../../models/api-response.model';
 import { parseDateAsLocal } from 'src/app/shared/utils/date.utils';
 
 @Component({
@@ -18,7 +18,7 @@ import { parseDateAsLocal } from 'src/app/shared/utils/date.utils';
   templateUrl: './list-calendario.component.html',
   styleUrls: ['./list-calendario.component.scss']
 })
-export class ListCalendarioComponent implements OnInit {
+export class ListCalendarioComponent implements OnInit, OnDestroy {
 
   @ViewChild('monthCellTemplate', { static: true }) monthCellTemplate!: TemplateRef<any>;
 
@@ -56,6 +56,12 @@ export class ListCalendarioComponent implements OnInit {
   // Control del panel de filtros
   isFilterExpanded: boolean = false;
 
+  // Suscripciones para poder desuscribirse
+  private subscriptions: Subscription[] = [];
+  private isLoadingEvents = false;
+  private isLoadingZones = false;
+  private isLoadingFacturacion = false;
+
   constructor(
     private navCtrl: NavController,
     private calendarioService: CalendarioService,
@@ -63,14 +69,27 @@ export class ListCalendarioComponent implements OnInit {
     private zonasService: ZonasService
   ) { }
 
+  ngOnDestroy() {
+    // Desuscribirse de todas las suscripciones
+    this.subscriptions.forEach(sub => {
+      if (sub && !sub.closed) {
+        sub.unsubscribe();
+      }
+    });
+    this.subscriptions = [];
+  }
+
   async ngOnInit() {
-    this.loadEvents();
-    this.loadZones();  // cargar la lista de zonas
-    this.cargarFacturacionFinalMes(); // cargar sumatoria de facturación final
+    // Solo inicializar variables, no cargar datos aquí
+    // Los datos se cargarán en ionViewDidEnter que es el hook correcto para Ionic
   }
 
   ionViewDidEnter() {
+    // Este hook se ejecuta cada vez que la página entra en vista
+    // Es el lugar correcto para cargar datos en Ionic
     this.loadEvents();
+    this.loadZones();  // cargar la lista de zonas
+    this.cargarFacturacionFinalMes(); // cargar sumatoria de facturación final
     this.selectedDay = null;
   }
 
@@ -93,78 +112,111 @@ export class ListCalendarioComponent implements OnInit {
   }
 
   // (3) Cargar la sumatoria de facturación finalizada
-  async cargarFacturacionFinalMes() {
+  cargarFacturacionFinalMes() {
+    // Evitar múltiples llamadas simultáneas
+    if (this.isLoadingFacturacion) {
+      console.log('[ListCalendario] cargarFacturacionFinalMes ya está en ejecución, ignorando llamada duplicada');
+      return;
+    }
+    
+    this.isLoadingFacturacion = true;
     const dateStr = this.viewDate.toISOString().split('T')[0];
     try {
-      const req = await this.calendarioService.getPartesFinalizadasMonth(dateStr);
-      req.subscribe((response: any) => {
-        if (response && response.ok) {
-          const partes = response.partes || response.data?.partes || [];
-          this.factSumDay = {}; // Reiniciar para evitar datos antiguos
-          partes.forEach((p: any) => {
-            // Parsear fecha correctamente para evitar problemas de timezone
-            const d = parseDateAsLocal(p.date);
-            if (!d) return;
-            const dayStr = this.toDateString(d);
-            if (!this.factSumDay[dayStr]) this.factSumDay[dayStr] = 0;
-            this.factSumDay[dayStr] += (p.facturacion || 0);
-          });
-        } else {
-          console.error('Error en la respuesta de getPartesFinalizadasMonth:', response);
+      const subscription = this.calendarioService.getPartesFinalizadasMonth(dateStr).subscribe({
+        next: (response: any) => {
+          this.isLoadingFacturacion = false;
+          if (response && response.ok) {
+            const partes = response.partes || response.data?.partes || [];
+            this.factSumDay = {}; // Reiniciar para evitar datos antiguos
+            partes.forEach((p: any) => {
+              // Parsear fecha correctamente para evitar problemas de timezone
+              const d = parseDateAsLocal(p.date);
+              if (!d) return;
+              const dayStr = this.toDateString(d);
+              if (!this.factSumDay[dayStr]) this.factSumDay[dayStr] = 0;
+              this.factSumDay[dayStr] += (p.facturacion || 0);
+            });
+          } else {
+            console.error('Error en la respuesta de getPartesFinalizadasMonth:', response);
+          }
+        },
+        error: (error) => {
+          this.isLoadingFacturacion = false;
+          console.error('Error al cargar partes finalizadas:', error);
         }
-      }, error => {
-        console.error('Error al cargar partes finalizadas:', error);
       });
+      this.subscriptions.push(subscription);
     } catch (error) {
+      this.isLoadingFacturacion = false;
       console.error('Error en cargarFacturacionFinalMes:', error);
     }
   }
 
-  async loadZones() {
+  loadZones() {
+    // Evitar múltiples llamadas simultáneas
+    if (this.isLoadingZones) {
+      console.log('[ListCalendario] loadZones ya está en ejecución, ignorando llamada duplicada');
+      return;
+    }
+    
+    this.isLoadingZones = true;
     try {
-      const req = await this.zonasService.getZones();
-      req.subscribe((response: any) => {
-        if (response && response.ok) {
-          this.zonas = response.zones || [];
-        } else {
-          console.error('Error en la respuesta de getZones:', response);
+      const subscription = this.zonasService.getZones().subscribe({
+        next: (response: any) => {
+          this.isLoadingZones = false;
+          if (response && response.ok) {
+            this.zonas = response.zones || [];
+          } else {
+            console.error('Error en la respuesta de getZones:', response);
+          }
+        },
+        error: (error) => {
+          this.isLoadingZones = false;
+          console.error('Error al cargar zonas:', error);
         }
-      }, error => {
-        console.error('Error al cargar zonas:', error);
       });
+      this.subscriptions.push(subscription);
     } catch (error) {
+      this.isLoadingZones = false;
       console.error('Error en loadZones:', error);
     }
   }
 
-  async loadEvents() {
+  loadEvents() {
+    // Evitar múltiples llamadas simultáneas
+    if (this.isLoadingEvents) {
+      console.log('[ListCalendario] loadEvents ya está en ejecución, ignorando llamada duplicada');
+      return;
+    }
+    
+    this.isLoadingEvents = true;
     try {
-      const req = await this.rutasService.getRutas();
-      req.subscribe((response: any) => {
-        console.log(response)
-        if (response && response.ok) {
-          // Normalizar la estructura de respuesta
-          if (response.rutas) {
-            this.events = this.mapRutasToEvents(response.rutas);
-          } else if (response.data && response.data.rutas) {
-            this.events = this.mapRutasToEvents(response.data.rutas);
+      const subscription = this.rutasService.getRutas().subscribe({
+        next: (rutas: any) => {
+          this.isLoadingEvents = false;
+          console.log('[ListCalendario] Respuesta de getRutas:', rutas);
+          // getRutas() devuelve directamente un array de rutas
+          if (Array.isArray(rutas)) {
+            this.events = this.mapRutasToEvents(rutas);
+            // Notificar al calendario que debe actualizar la vista
+            this.refresh.next(null);
           } else {
-            console.error('No se encontraron rutas en la respuesta:', response);
+            console.error('Error: getRutas no devolvió un array:', rutas);
             this.events = [];
+            this.refresh.next(null);
           }
-          // Notificar al calendario que debe actualizar la vista
-          this.refresh.next(null);
-        } else {
-          console.error('Error en la respuesta de getRutas:', response);
+        },
+        error: (error) => {
+          this.isLoadingEvents = false;
+          console.error('Error al cargar eventos:', error);
           this.events = [];
+          // Notificar al calendario incluso en caso de error, para que no se quede bloqueado
+          this.refresh.next(null);
         }
-      }, error => {
-        console.error('Error al cargar eventos:', error);
-        this.events = [];
-        // Notificar al calendario incluso en caso de error, para que no se quede bloqueado
-        this.refresh.next(null);
       });
+      this.subscriptions.push(subscription);
     } catch (error) {
+      this.isLoadingEvents = false;
       console.error('Error en loadEvents:', error);
       this.events = [];
       this.refresh.next(null);
@@ -253,7 +305,13 @@ export class ListCalendarioComponent implements OnInit {
       const rutasDirectas = day.events.map(event => event.meta.ruta).filter(ruta => ruta);
       if (rutasDirectas.length > 0) {
         console.log('Rutas obtenidas directamente de eventos:', rutasDirectas.length);
-        this.rutasDelDia = rutasDirectas;
+        // Normalizar rutas: agregar _id si solo tienen id
+        this.rutasDelDia = rutasDirectas.map(r => {
+          if (!r._id && r.id) {
+            r._id = String(r.id);
+          }
+          return r;
+        });
 
         // Seleccionar la primera ruta para mostrar sus detalles
         if (this.rutasDelDia.length > 0) {
@@ -273,17 +331,24 @@ export class ListCalendarioComponent implements OnInit {
     const rutasPrevias = [...this.rutasDelDia];
 
     // Además, hacer la llamada al API para asegurar que tenemos los datos más actualizados
-    this.calendarioService.getRutasByDate(dateStr).subscribe({
+    const subscription = this.calendarioService.getRutasByDate(dateStr).subscribe({
       next: (response: any) => {
-        console.log('Respuesta de getRutasByDate en dayClicked:', response);
+        console.log('[ListCalendario] Respuesta de getRutasByDate en dayClicked:', response);
         const rutasAPI = response?.data?.rutas || response?.rutas || [];
 
         if (response?.ok && rutasAPI.length > 0) {
           console.log('Rutas obtenidas de API:', rutasAPI.length);
-          this.rutasDelDia = rutasAPI;
+          // Normalizar rutas: agregar _id si solo tienen id
+          this.rutasDelDia = rutasAPI.map((r:any) => {
+            if (!r._id && r.id) {
+              r._id = String(r.id);
+            }
+            return r;
+          });
 
-          const rutaActual = this.rutaSeleccionada?._id
-            ? this.rutasDelDia.find(r => r._id === this.rutaSeleccionada!._id)
+          const rutaSeleccionadaId = this.rutaSeleccionada ? this.getRutaId(this.rutaSeleccionada) : null;
+          const rutaActual = rutaSeleccionadaId
+            ? this.rutasDelDia.find(r => this.getRutaId(r) === rutaSeleccionadaId)
             : null;
 
           if (rutaActual) {
@@ -309,6 +374,7 @@ export class ListCalendarioComponent implements OnInit {
         this.rutasDelDia = rutasPrevias;
       }
     });
+    this.subscriptions.push(subscription);
 
     // Cargar partes no asignados en paralelo
     this.cargarPartesNoAsignadosEnMes(dateStr);
@@ -328,11 +394,10 @@ export class ListCalendarioComponent implements OnInit {
     this.cargarPartesNoAsignadosEnMes(dateStr);
   }
 
-  async cargarRutasDelDia(dateStr: string) {
+  cargarRutasDelDia(dateStr: string) {
     const rutasPrevias = [...this.rutasDelDia];
     try {
-      const req = await this.calendarioService.getRutasByDate(dateStr);
-      req.subscribe({
+      const subscription = this.calendarioService.getRutasByDate(dateStr).subscribe({
         next: (response: any) => {
           const rutasAPI = response?.data?.rutas || response?.rutas || [];
           if (response?.ok) {
@@ -344,8 +409,17 @@ export class ListCalendarioComponent implements OnInit {
               return;
             }
 
-            const rutaActual = this.rutaSeleccionada?._id
-              ? this.rutasDelDia.find(r => r._id === this.rutaSeleccionada!._id)
+            // Normalizar rutas: agregar _id si solo tienen id
+            this.rutasDelDia = this.rutasDelDia.map(r => {
+              if (!r._id && r.id) {
+                r._id = String(r.id);
+              }
+              return r;
+            });
+
+            const rutaSeleccionadaId = this.rutaSeleccionada ? this.getRutaId(this.rutaSeleccionada) : null;
+            const rutaActual = rutaSeleccionadaId
+              ? this.rutasDelDia.find(r => this.getRutaId(r) === rutaSeleccionadaId)
               : null;
 
             if (rutaActual) {
@@ -363,6 +437,7 @@ export class ListCalendarioComponent implements OnInit {
           this.rutasDelDia = rutasPrevias;
         }
       });
+      this.subscriptions.push(subscription);
     } catch (error) {
       console.error('Error en cargarRutasDelDia:', error);
       this.rutasDelDia = rutasPrevias;
@@ -371,44 +446,61 @@ export class ListCalendarioComponent implements OnInit {
 
   mostrarDetalleRuta(ruta: Ruta) {
     this.rutaSeleccionada = ruta;
-    this.cargarPartesDeLaRuta(ruta._id);
+    const rutaId = this.getRutaId(ruta);
+    if (!rutaId) {
+      console.error('No se pudo obtener el ID de la ruta:', ruta);
+      return;
+    }
+    this.cargarPartesDeLaRuta(rutaId);
     this.enableCheckParts = false;
   }
 
-  async cargarPartesDeLaRuta(rutaId: string) {
+  // Helper para obtener el ID de la ruta (soporta tanto id como _id)
+  private getRutaId(ruta: any): string | null {
+    if (!ruta) return null;
+    // El backend devuelve 'id' (number), el frontend espera '_id' (string)
+    if (ruta._id) return String(ruta._id);
+    if (ruta.id) return String(ruta.id);
+    return null;
+  }
+
+  cargarPartesDeLaRuta(rutaId: string) {
     try {
-      const req = await this.rutasService.getPartesDeRuta(rutaId);
-      req.subscribe((response: any) => {
-        console.log(response)
-        if (response && response.ok) {
-          // Normalizar la estructura de respuesta
-          if (Array.isArray(response.data)) {
-            this.partesAsignadosARuta = response.data;
-          } else if (response.partes) {
-            this.partesAsignadosARuta = response.partes;
-          } else if (response.data && response.data.partes) {
-            this.partesAsignadosARuta = response.data.partes;
+      const subscription = this.rutasService.getPartesDeRuta(rutaId).subscribe({
+        next: (response: any) => {
+          console.log('[ListCalendario] Respuesta getPartesDeRuta:', response);
+          if (response && response.ok) {
+            // Normalizar la estructura de respuesta
+            if (Array.isArray(response.data)) {
+              this.partesAsignadosARuta = response.data;
+            } else if (response.partes) {
+              this.partesAsignadosARuta = response.partes;
+            } else if (response.data && response.data.partes) {
+              this.partesAsignadosARuta = response.data.partes;
+            } else {
+              console.error('No se encontraron partes en la respuesta:', response);
+              this.partesAsignadosARuta = [];
+            }
           } else {
-            console.error('No se encontraron partes en la respuesta:', response);
+            console.error('Error en la respuesta de getPartesDeRuta:', response);
             this.partesAsignadosARuta = [];
           }
-        } else {
-          console.error('Error en la respuesta de getPartesDeRuta:', response);
+        },
+        error: (error) => {
+          console.error('Error al cargar partes de la ruta:', error);
           this.partesAsignadosARuta = [];
         }
-      }, error => {
-        console.error('Error al cargar partes de la ruta:', error);
-        this.partesAsignadosARuta = [];
       });
+      this.subscriptions.push(subscription);
     } catch (error) {
       console.error('Error en cargarPartesDeLaRuta:', error);
       this.partesAsignadosARuta = [];
     }
   }
 
-  async cargarPartesNoAsignadosEnMes(dateStr: string) {
+  cargarPartesNoAsignadosEnMes(dateStr: string) {
     try {
-      this.calendarioService.getPartesNoAsignadosEnMes(dateStr)
+      const subscription = this.calendarioService.getPartesNoAsignadosEnMes(dateStr)
         .subscribe({
           next: (response) => {
             if (response.ok) {
@@ -428,6 +520,7 @@ export class ListCalendarioComponent implements OnInit {
             this.partesNoAsignados = [];
           }
         });
+      this.subscriptions.push(subscription);
     } catch (error) {
       console.error('Error en cargarPartesNoAsignadosEnMes:', error);
       this.partesNoAsignados = [];
@@ -449,25 +542,47 @@ export class ListCalendarioComponent implements OnInit {
   async asignarPartesARuta(parteSeleccionados: Parte[]) {
     if (!this.rutaSeleccionada || parteSeleccionados.length === 0) return;
     try {
-      const req = await this.rutasService.asignarPartesARuta(
-        this.rutaSeleccionada._id,
-        parteSeleccionados.map(p => p._id)
-      );
-      req.subscribe((response: any) => {
-        if (response && response.ok) {
-          // Actualizar la vista
-          this.cargarPartesDeLaRuta(this.rutaSeleccionada!._id);
-          // Recargar partes no asignados
-          if (this.selectedDay) {
-            const dateStr = this.toDateString(this.selectedDay);
-            this.cargarPartesNoAsignadosEnMes(dateStr);
+      const rutaId = this.getRutaId(this.rutaSeleccionada);
+      if (!rutaId) {
+        console.error('No se pudo obtener el ID de la ruta');
+        return;
+      }
+      
+      const parteIds :any= parteSeleccionados.map(p => p._id || p.id).filter((id): id is string | number => id !== undefined && id !== null);
+      
+      if (parteIds.length === 0) {
+        console.error('No hay IDs válidos para asignar');
+        return;
+      }
+      
+      const subscription = this.rutasService.asignarPartesARuta(rutaId, parteIds).subscribe({
+        next: (response: any) => {
+          console.log('[ListCalendario] Respuesta de asignarPartesARuta:', response);
+          if (response && response.ok) {
+            // Actualizar la vista: recargar partes de la ruta
+            const rutaIdToReload = this.getRutaId(this.rutaSeleccionada!);
+            if (rutaIdToReload) {
+              this.cargarPartesDeLaRuta(rutaIdToReload);
+            }
+            
+            // Recargar partes no asignados para actualizar la lista
+            if (this.selectedDay) {
+              const dateStr = this.toDateString(this.selectedDay);
+              this.cargarPartesNoAsignadosEnMes(dateStr);
+            }
+            
+            // Desmarcar los partes seleccionados
+            parteSeleccionados.forEach(p => p.selected = false);
+            this.enableCheckParts = false;
+          } else {
+            console.error('Error al asignar partes a ruta:', response?.error || response);
           }
-        } else {
-          console.error('Error al asignar partes a ruta:', response);
+        },
+        error: (error) => {
+          console.error('Error al asignar partes a ruta:', error);
         }
-      }, error => {
-        console.error('Error al asignar partes a ruta:', error);
       });
+      this.subscriptions.push(subscription);
     } catch (error) {
       console.error('Error en asignarPartesARuta:', error);
     }
@@ -491,7 +606,10 @@ export class ListCalendarioComponent implements OnInit {
 
     // Filtro por zona (p.customer.zone == filterZona)
     if (this.filterZona) {
-      temp = temp.filter(p => p.customer?.zone === this.filterZona);
+      temp = temp.filter(p => {
+        const customer = typeof p.customer === 'object' ? p.customer : null;
+        return customer?.zone && (typeof customer.zone === 'object' ? customer.zone._id === this.filterZona : customer.zone === this.filterZona);
+      });
     }
     // Filtro por tipo
     if (this.filterTipo) {
@@ -578,5 +696,21 @@ export class ListCalendarioComponent implements OnInit {
 
     // Actualizar la facturación del mes
     this.cargarFacturacionFinalMes();
+  }
+
+  getCustomerName(parte: Parte): string {
+    return typeof parte.customer === 'object' ? parte.customer?.name || 'Sin cliente' : 'Sin cliente';
+  }
+
+  getRutaName(ruta: any): string {
+    if (!ruta) return 'Ruta sin nombre';
+    if (typeof ruta === 'string') return ruta;
+    return ruta.name?.name || ruta.name || 'Ruta sin nombre';
+  }
+
+  getVehicleInfo(vehicle: any): string {
+    if (!vehicle) return 'Sin vehículo';
+    if (typeof vehicle === 'string') return vehicle;
+    return `${vehicle.brand || ''} - ${vehicle.matricula || ''}`.trim() || 'Sin vehículo';
   }
 }

@@ -30,13 +30,15 @@ export class FormZonaComponent implements OnInit {
 
   ngOnInit() {
     this.initForm();
-    this.loadZipcodes();
-    this.route.paramMap.subscribe(params => {
-      this.zonaId = params.get('id');
-      if (this.zonaId) {
-        this.isEdit = true;
-        this.cargarZona(this.zonaId);
-      }
+    // Cargar zipcodes primero, luego verificar si es edición
+    this.loadZipcodes().then(() => {
+      this.route.paramMap.subscribe(params => {
+        this.zonaId = params.get('id');
+        if (this.zonaId) {
+          this.isEdit = true;
+          this.cargarZona(this.zonaId);
+        }
+      });
     });
   }
 
@@ -48,26 +50,44 @@ export class FormZonaComponent implements OnInit {
     });
   }
 
-  async loadZipcodes() {
-    const res = await firstValueFrom(this._zipcodes.getZipcodes());
-    if (res.ok) this.zipcodesDisponibles = res.data.zipcodes;
+  async loadZipcodes(): Promise<void> {
+    try {
+      const res = await firstValueFrom(this._zipcodes.getZipcodes());
+      if (res.ok && res.data) {
+        this.zipcodesDisponibles = res.data.zipcodes || [];
+      } else {
+        this.zipcodesDisponibles = [];
+      }
+    } catch (error) {
+      console.error('Error al cargar zipcodes:', error);
+      this.zipcodesDisponibles = [];
+    }
   }
 
   async cargarZona(id: string) {
     try {
-      const req = await this._zona.getZoneById(id);
-      req.subscribe((res: any) => {
-        if (res.ok && res.data?.zone) {
-          const z = res.data.zone;
-          if (z.codezip && !this.zipcodesDisponibles.some(c => c._id === z.codezip)) {
-            this.zipcodesDisponibles.push({ _id: z.codezip, codezip: z.codezip });
-          }
+      const req = this._zona.getZoneById(id);
+      req.subscribe({
+        next: (res: any) => {
+          if (res.ok && res.data) {
+            const z = res.data.zone || res.data;
+            // Asegurar que el zipcode esté en la lista
+            if (z.codezip) {
+              const codezipId = typeof z.codezip === 'object' ? (z.codezip._id || z.codezip.id?.toString()) : z.codezip;
+              if (codezipId && !this.zipcodesDisponibles.some(c => c._id === codezipId || c.id?.toString() === codezipId)) {
+                this.zipcodesDisponibles.push({ _id: codezipId, codezip: codezipId });
+              }
+            }
 
-          this.zonaForm.patchValue({
-            name: z.name,
-            code: z.code,
-            codezip: z.codezip ?? ''
-          });
+            this.zonaForm.patchValue({
+              name: z.name,
+              code: z.code,
+              codezip: typeof z.codezip === 'object' ? (z.codezip._id || z.codezip.id?.toString()) : (z.codezip || '')
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar zona:', error);
         }
       });
     } catch (error) {

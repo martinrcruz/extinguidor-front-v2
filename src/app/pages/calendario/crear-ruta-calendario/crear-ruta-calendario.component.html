@@ -126,7 +126,7 @@
         </p>
         <p class="parte-details">
           <ion-icon name="business-outline"></ion-icon>
-          {{ p.customer.name }}
+          {{ getCustomerName(p) }}
         </p>
         <p class="parte-details" *ngIf="p.coordinationMethod">
           <ion-icon name="time-outline"></ion-icon>
@@ -139,6 +139,8 @@
       </ion-label>
     </ion-item>
 
+
+    
     <!-- Estado vacío -->
     <div class="empty-state" *ngIf="!partesNoAsignados || partesNoAsignados.length === 0">
       <ion-icon name="document-text-outline"></ion-icon>

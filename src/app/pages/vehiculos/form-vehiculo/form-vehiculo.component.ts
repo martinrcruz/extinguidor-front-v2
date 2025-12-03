@@ -47,17 +47,22 @@ export class FormVehiculoComponent  implements OnInit {
 
   async cargarVehiculo(id: string) {
     try {
-      const req = await this._vehiculo.getVehicleById(id);
-      req.subscribe((res: any) => {
-        if (res.vehicle) {
-          this.vehicleForm.patchValue({
-            brand:      res.vehicle.brand,
-            modelo:     res.vehicle.modelo,
-            matricula:  res.vehicle.matricula,
-            fuel:       res.vehicle.fuel,
-            type:       res.vehicle.type,
-            photo:      res.vehicle.photo
-          });
+      const req = this._vehiculo.getVehicleById(id);
+      req.subscribe({
+        next: (vehicle: any) => {
+          if (vehicle) {
+            this.vehicleForm.patchValue({
+              brand:      vehicle.brand,
+              modelo:     vehicle.modelo,
+              matricula:  vehicle.matricula,
+              fuel:       vehicle.fuel,
+              type:       vehicle.type,
+              photo:      vehicle.photo
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar vehículo:', error);
         }
       });
     } catch (error) {
@@ -78,8 +83,12 @@ export class FormVehiculoComponent  implements OnInit {
         });
       } else {
         // Editar
+        if (!this.vehicleId) {
+          console.error('No se proporcionó el ID del vehículo');
+          return;
+        }
         data._id = this.vehicleId;
-        const req = await this._vehiculo.updateVehicle(data);
+        const req = await this._vehiculo.updateVehicle(this.vehicleId, data);
         req.subscribe(() => {
           this.navCtrl.navigateRoot('/vehiculos');
         });

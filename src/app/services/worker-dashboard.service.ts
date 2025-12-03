@@ -4,7 +4,7 @@ import { environment } from 'src/environments/environment';
 import { AuthService } from './auth.service';
 import { Observable, of, throwError, timer, OperatorFunction } from 'rxjs';
 import { catchError, map, retryWhen, delayWhen, tap } from 'rxjs/operators';
-import { Parte } from '../interfaces/parte.interface';
+import { Parte } from '../models/parte.model';
 
 // Interfaces para tipado fuerte
 interface Ruta {

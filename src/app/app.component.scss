@@ -1,7 +1,7 @@
 /**********************************************************
- * Variables de color principal
+ * Variables de color principal - IMPORTADAS
  **********************************************************/
- :root {
+:root {
   --ion-color-primary: #BD1E1E;
   --ion-color-primary-rgb: 189,30,30;
   --ion-color-primary-contrast: #ffffff;
@@ -23,7 +23,7 @@ ion-button:not(.edit-btn):not(.delete-btn):not(.cerrar-sesion-btn) {
 }
 
 /**********************************************************
- * Menú Lateral
+ * Menú Lateral - Mejoras UX
  **********************************************************/
 ion-menu ion-content {
   --background: var(--ion-item-background, var(--ion-background-color, #fff));
@@ -70,17 +70,27 @@ ion-menu.md ion-item {
   --padding-start: 10px;
   --padding-end: 10px;
   border-radius: 4px;
+  margin: 2px 0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    --background: rgba(var(--ion-color-primary-rgb), 0.1);
+  }
 }
 
 ion-menu.md ion-item.selected {
   --background: rgba(var(--ion-color-primary-rgb), 0.14);
+  font-weight: 600;
 }
 
-ion-menu.md ion-item.selected ion-icon {
-  color: white !important;
+ion-menu.md ion-item.selected ion-icon,
+ion-menu.md ion-item.selected i {
+  color: var(--ion-color-primary) !important;
 }
 
-ion-menu.md ion-item ion-icon {
+ion-menu.md ion-item ion-icon,
+ion-menu.md ion-item i {
   color: #616e7e;
 }
 
@@ -105,13 +115,21 @@ ion-menu.ios ion-item {
   --padding-start: 16px;
   --padding-end: 16px;
   --min-height: 50px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    --background: rgba(var(--ion-color-primary-rgb), 0.1);
+  }
 }
 
-ion-menu.ios ion-item.selected ion-icon {
-  color: white !important;
+ion-menu.ios ion-item.selected ion-icon,
+ion-menu.ios ion-item.selected i {
+  color: var(--ion-color-primary) !important;
 }
 
-ion-menu.ios ion-item ion-icon {
+ion-menu.ios ion-item ion-icon,
+ion-menu.ios ion-item i {
   font-size: 24px;
   color: #73849a;
 }
@@ -162,6 +180,11 @@ ion-item.selected {
 
 .event-icon {
   cursor: pointer;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
 }
 
 .event-icon img {
@@ -186,3 +209,30 @@ ion-item.selected {
 .tag-corr { background-color: #dc3545; }
 .tag-visit { background-color: #28a745; }
 .tag-other { background-color: #6c757d; }
+
+/**********************************************************
+ * Mejoras UX adicionales para el menú
+ **********************************************************/
+
+// Iconos del menú con mejor spacing
+ion-menu ion-item i {
+  margin-right: 12px;
+  font-size: 1.25rem;
+  width: 24px;
+  text-align: center;
+}
+
+// Submenús con mejor indentación
+ion-menu ion-list ion-list {
+  padding-left: 16px;
+  border-left: 2px solid rgba(var(--ion-color-primary-rgb), 0.2);
+  margin-left: 12px;
+}
+
+// Footer del menú con mejor estilo
+ion-menu ion-footer {
+  ion-toolbar {
+    --background: var(--ion-color-primary);
+    --border-width: 0;
+  }
+}

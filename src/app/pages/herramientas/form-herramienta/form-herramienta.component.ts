@@ -44,16 +44,31 @@ export class FormHerramientaComponent  implements OnInit {
 
   async cargarHerramienta(id: string) {
     try {
-      // Ajusta si tu _herramienta es getHerramientaById
-      const req = await this._herramienta.getHerramientaById(id);
-      req.subscribe((res: any) => {
-        console.log(res);
-        if (res.ok && res.data.herramienta) {
-          this.herramientaForm.patchValue({
-            name:        res.data.herramienta.name,
-            code:        res.data.herramienta.code,
-            description: res.data.herramienta.description
-          });
+      const req = this._herramienta.getHerramientaById(id);
+      req.subscribe({
+        next: (res: any) => {
+          console.log('Respuesta herramienta:', res);
+          // El servicio devuelve la respuesta completa del API
+          if (res.ok && res.data?.material) {
+            // El backend usa /material para herramientas también
+            const herramienta = res.data.material;
+            this.herramientaForm.patchValue({
+              name:        herramienta.name,
+              code:        herramienta.code,
+              description: herramienta.description
+            });
+          } else if (res.ok && res.data?.herramienta) {
+            // Fallback por si cambia la estructura
+            const herramienta = res.data.herramienta;
+            this.herramientaForm.patchValue({
+              name:        herramienta.name,
+              code:        herramienta.code,
+              description: herramienta.description
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar herramienta:', error);
         }
       });
     } catch (error) {

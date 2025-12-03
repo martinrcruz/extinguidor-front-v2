@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable, of, from } from 'rxjs';
-import { ApiResponse } from '../interfaces/api-response.interface';
-import { map, catchError, retry, switchMap } from 'rxjs/operators';
+import { ApiResponse } from '../models/api-response.model';
+import { map, catchError, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -22,7 +22,6 @@ export class CalendarioService  {
     return from(this.authService.getHeaders()).pipe(
       switchMap(opts =>
         this.http.get<any>(`${environment.apiUrl}/partes/calendario/${date}/rutas`, opts).pipe(
-          retry(1),
           map(response => {
             // Manejar formato estandarizado { ok: true, data: { rutas } }
             const rutas = response.data?.rutas || response.rutas || [];
@@ -49,7 +48,6 @@ export class CalendarioService  {
     return from(this.authService.getHeaders()).pipe(
       switchMap(opts =>
         this.http.get<any>(`${environment.apiUrl}/partes/calendario/${date}/partes-no-asignados`, opts).pipe(
-          retry(1),
           map((response: any) => {
             // Manejar formato estandarizado { ok: true, data: { partes } } o { ok: true, partes }
             const partes = response.data?.partes || response.partes || [];
@@ -75,7 +73,6 @@ export class CalendarioService  {
     return from(this.authService.getHeaders()).pipe(
       switchMap(opts =>
         this.http.get<any>(`${environment.apiUrl}/partes/calendario/${date}/partes-finalizados`, opts).pipe(
-          retry(1),
           map(response => {
             // Manejar formato estandarizado { ok: true, data: { partes } } o { ok: true, partes }
             const partes = response.data?.partes || response.partes || [];

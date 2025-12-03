@@ -51,34 +51,57 @@ export class FormUsuarioComponent implements OnInit {
     });
   }
   async cargarUsuario(id: string) {
-    const req = await this._user.getUserById(id);
-    req.subscribe(({ ok, data }) => {
-      if (ok && data.user) {
-        const u = data.user;
-        this.usuarioForm.patchValue({
-          name: u.name, code: u.code, email: u.email,
-          phone: u.phone, role: u.role, junior: u.junior
-        });
-      }
-    });
+    try {
+      const req = await this._user.getUserById(id);
+      req.subscribe({
+        next: (response: any) => {
+          const user = response?.data?.user || response?.user || response?.data || response;
+          if (user) {
+            this.usuarioForm.patchValue({
+              name: user.name || '',
+              code: user.code || '',
+              email: user.email || '',
+              phone: user.phone || '',
+              role: user.role || 'worker',
+              junior: user.junior || false
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar usuario:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Error al cargar usuario:', error);
+    }
   }
 
+  
+
   async guardar() {
+
     if (this.usuarioForm.invalid) { return; }
 
     const data = this.usuarioForm.value;
     try {
-      const req = this.isEdit
+      
+      const req : any = this.isEdit
         ? await this._user.updateUser({ ...data, _id: this.usuarioId! })
-        : this._user.createUser(data);
+        : await this._user.createUser(data);
 
-      req.subscribe(({ ok }) => ok && this.navCtrl.navigateRoot('/usuarios'));
+      req.subscribe((response: any) => {
+        if (response?.ok) {
+          this.navCtrl.navigateRoot('/usuarios');
+        }
+
+      });
 
 
     } catch (error) {
       console.error('Error al guardar usuario:', error);
     }
   }
+
 
   cancelar() {
     // Navegar de vuelta a la lista de usuarios

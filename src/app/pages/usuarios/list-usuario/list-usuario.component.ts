@@ -13,6 +13,7 @@ export class ListUsuarioComponent  implements OnInit {
   usuarios: any[] = [];          // lista original
   filteredUsuarios: any[] = [];  // lista filtrada para la vista
   selectedStatus: string = '';
+  loading: boolean = false;
 
   constructor(
     private _usuarios: UserService,
@@ -22,7 +23,7 @@ export class ListUsuarioComponent  implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.cargarUsuarios();
+    // Los datos se cargarán en ionViewDidEnter
   }
 
   ionViewDidEnter(){
@@ -30,13 +31,30 @@ export class ListUsuarioComponent  implements OnInit {
   }
 
 async cargarUsuarios() {
-  const req = await this._usuarios.getAllUsers();
-  req.subscribe(({ ok, data }) => {
-    if (ok && data.users) {
-      this.usuarios = data.users;
-      this.applyFilters();
-    }
-  });
+  this.loading = true;
+  try {
+    const req = await this._usuarios.getAllUsers();
+    req.subscribe(({ ok, data }) => {
+      if (ok && data && data.users) {
+        this.usuarios = data.users;
+        this.applyFilters();
+      } else {
+        this.usuarios = [];
+        this.filteredUsuarios = [];
+      }
+      this.loading = false;
+    }, (error) => {
+      console.error('Error al cargar usuarios:', error);
+      this.usuarios = [];
+      this.filteredUsuarios = [];
+      this.loading = false;
+    });
+  } catch (error) {
+    console.error('Error al cargar usuarios:', error);
+    this.usuarios = [];
+    this.filteredUsuarios = [];
+    this.loading = false;
+  }
 }
 
 

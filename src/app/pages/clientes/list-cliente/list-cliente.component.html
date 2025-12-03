@@ -5,6 +5,9 @@
     </ion-buttons>
     <ion-title>Clientes</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="exportarExcel()" title="Exportar a Excel">
+        <ion-icon name="document-outline"></ion-icon>
+      </ion-button>
       <ion-button (click)="nuevoCliente()">
         <ion-icon name="add-circle-outline"></ion-icon>
       </ion-button>
@@ -49,8 +52,23 @@
       </ion-card-content>
     </ion-card>
 
+    <!-- Loading Spinner -->
+    <div *ngIf="loading" class="ion-text-center ion-padding">
+      <ion-spinner></ion-spinner>
+      <p>Cargando clientes...</p>
+    </div>
+
+    <!-- Debug Info (temporal) -->
+    <!-- <div *ngIf="!loading" class="ion-padding" style="background: #f0f0f0; margin: 10px; border-radius: 5px;">
+      <p><strong>Debug:</strong></p>
+      <p>Clientes totales: {{ clientes.length }}</p>
+      <p>Clientes filtrados: {{ filteredClientes.length }}</p>
+      <p>Clientes paginados: {{ paginatedClientes.length }}</p>
+      <p>Página actual: {{ currentPage }} / {{ totalPages }}</p>
+    </div> -->
+
     <!-- Lista de Clientes -->
-    <div class="clientes-list">
+    <div class="clientes-list" *ngIf="!loading">
       <div *ngIf="filteredClientes.length > 0; else emptyState">
         <ion-card class="cliente-card" *ngFor="let c of paginatedClientes">
           <ion-card-header>
@@ -89,11 +107,11 @@
             </div>
             
             <div class="cliente-actions">
-              <ion-button fill="outline" (click)="editarCliente(c._id)">
+              <ion-button fill="outline" (click)="editarCliente(c._id || '')" [disabled]="!c._id">
                 <ion-icon name="create-outline" slot="start"></ion-icon>
                 Editar
               </ion-button>
-              <ion-button color="danger" (click)="eliminarCliente(c._id)">
+              <ion-button color="danger" (click)="eliminarCliente(c._id || '')" [disabled]="!c._id">
                 <ion-icon name="trash-outline" slot="start"></ion-icon>
                 Eliminar
               </ion-button>

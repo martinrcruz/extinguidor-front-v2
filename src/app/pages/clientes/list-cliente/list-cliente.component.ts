@@ -3,8 +3,9 @@ import { Router } from '@angular/router';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { ClientesService, Cliente, ClientesResponse } from '../../../services/clientes.service';
 import { ZonasService, Zona, ZonasResponse } from '../../../services/zonas.service';
+import { ExportService } from '../../../services/export.service';
 import { firstValueFrom } from 'rxjs';
-import { ApiResponse } from '../../../interfaces/api-response.interface';
+import { ApiResponse } from '../../../models/api-response.model';
 
 @Component({
   selector: 'app-list-cliente',
@@ -20,6 +21,7 @@ export class ListClienteComponent implements OnInit {
   searchText: string = '';
   selectedZone: string = '';
   selectedType: string = '';
+  loading: boolean = false;
   
   // Paginación
   currentPage: number = 1;
@@ -32,40 +34,63 @@ export class ListClienteComponent implements OnInit {
     private zonasService: ZonasService,
     private router: Router,
     private loadingCtrl: LoadingController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private exportService: ExportService
   ) {}
 
   ngOnInit() {
-    this.cargarClientes();
-    this.cargarZonas();
+    // Solo inicializar variables, no cargar datos aquí
+    // Los datos se cargarán en ionViewDidEnter que es el hook correcto para Ionic
+    this.cargarZonas(); // Las zonas solo se cargan una vez
   }
 
 
   ionViewDidEnter(){
-       this.cargarClientes();
-
+    // Este hook se ejecuta cada vez que la página entra en vista
+    // Es el lugar correcto para cargar datos en Ionic
+    this.cargarClientes();
   }
 
   async cargarClientes() {
+    this.loading = true;
     const loading = await this.loadingCtrl.create({
       message: 'Cargando clientes...'
     });
     await loading.present();
 
     try {
+      console.log('[ListClienteComponent] Iniciando carga de clientes...');
       const response = await firstValueFrom(this.clientesService.getCustomers());
+      console.log('[ListClienteComponent] Respuesta recibida:', response);
       if (response && response.ok && response.data) {
-        this.clientes = response.data.customers;
+        this.clientes = response.data.customers || [];
+        console.log('[ListClienteComponent] Clientes procesados:', this.clientes.length);
+        console.log('[ListClienteComponent] Primer cliente:', this.clientes[0]);
         this.filteredClientes = [...this.clientes];
+        console.log('[ListClienteComponent] Clientes filtrados:', this.filteredClientes.length);
+        this.currentPage = 1; // Resetear a la primera página
         this.applyPagination();
+        console.log('[ListClienteComponent] Clientes paginados:', this.paginatedClientes.length);
+        console.log('[ListClienteComponent] Primer cliente paginado:', this.paginatedClientes[0]);
+        this.errorMessage = '';
       } else {
+        console.warn('[ListClienteComponent] Respuesta inválida:', response);
         this.clientes = [];
         this.filteredClientes = [];
         this.paginatedClientes = [];
+        this.errorMessage = response?.error || 'No se pudieron cargar los clientes';
       }
-    } catch (error) {
-      console.error('Error al cargar clientes:', error);
-      this.errorMessage = 'Error al cargar los clientes. Por favor, intente nuevamente.';
+    } catch (error: any) {
+      console.error('[ListClienteComponent] Error al cargar clientes:', error);
+      console.error('[ListClienteComponent] Detalles del error:', {
+        message: error?.message,
+        status: error?.status,
+        error: error?.error
+      });
+      this.errorMessage = error?.message || 'Error al cargar los clientes. Por favor, intente nuevamente.';
+      this.clientes = [];
+      this.filteredClientes = [];
+      this.paginatedClientes = [];
       const toast = await this.toastCtrl.create({
         message: this.errorMessage,
         duration: 3000,
@@ -74,6 +99,7 @@ export class ListClienteComponent implements OnInit {
       });
       await toast.present();
     } finally {
+      this.loading = false;
       await loading.dismiss();
     }
   }
@@ -117,12 +143,19 @@ export class ListClienteComponent implements OnInit {
   }
   
   applyPagination() {
+    console.log('[ListClienteComponent] applyPagination - filteredClientes.length:', this.filteredClientes.length);
+    console.log('[ListClienteComponent] applyPagination - currentPage:', this.currentPage);
+    console.log('[ListClienteComponent] applyPagination - pageSize:', this.pageSize);
+    
     this.totalPages = Math.ceil(this.filteredClientes.length / this.pageSize);
+    console.log('[ListClienteComponent] applyPagination - totalPages:', this.totalPages);
     
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
+    console.log('[ListClienteComponent] applyPagination - startIndex:', startIndex, 'endIndex:', endIndex);
     
     this.paginatedClientes = this.filteredClientes.slice(startIndex, endIndex);
+    console.log('[ListClienteComponent] applyPagination - paginatedClientes.length:', this.paginatedClientes.length);
   }
   
   onPageChange(page: number) {
@@ -192,6 +225,45 @@ export class ListClienteComponent implements OnInit {
           }
         }
       ]
+    });
+    await toast.present();
+  }
+
+  async exportarExcel() {
+    const loading = await this.loadingCtrl.create({
+      message: 'Exportando a Excel...'
+    });
+    await loading.present();
+
+    try {
+      const observable = await this.exportService.exportCustomersToExcel();
+      observable.subscribe({
+        next: (blob) => {
+          const filename = `clientes_${new Date().toISOString().split('T')[0]}.xlsx`;
+          this.exportService.downloadFile(blob, filename);
+          this.showToast('Archivo Excel descargado correctamente', 'success');
+        },
+        error: (error) => {
+          console.error('Error al exportar a Excel:', error);
+          this.showToast('Error al exportar a Excel', 'danger');
+        },
+        complete: async () => {
+          await loading.dismiss();
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      await loading.dismiss();
+      this.showToast('Error al exportar a Excel', 'danger');
+    }
+  }
+
+  private async showToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      color,
+      position: 'bottom'
     });
     await toast.present();
   }

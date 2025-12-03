@@ -3,15 +3,16 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Storage } from '@ionic/storage-angular';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, filter, take } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
-import { ApiResponse } from '../interfaces/api-response.interface';
+import { ApiResponse } from '../models/api-response.model';
 import { AlertController } from '@ionic/angular';
 
 interface LoginResponse {
   token: string;
   role: string;
+  user: any;
 }
 
 @Injectable({
@@ -22,8 +23,10 @@ export class AuthService {
   private _storage: Storage | null = null;
   private isLoggedInSubject = new BehaviorSubject<boolean>(false);
   private userSubject = new BehaviorSubject<any>(null);
+  private storageInitialized = new BehaviorSubject<boolean>(false);
 
   public user$ = this.userSubject.asObservable();
+  public storageReady$ = this.storageInitialized.asObservable();
 
   constructor(
     private http: HttpClient,
@@ -39,26 +42,57 @@ export class AuthService {
       const store = await this.storage.create();
       this._storage = store;
       await this.checkToken();
+      this.storageInitialized.next(true);
     } catch (error) {
       console.error('Error initializing storage', error);
+      this.storageInitialized.next(true); // Marcar como inicializado incluso con error
+      this.isLoggedInSubject.next(false);
     }
+  }
+
+  /**
+   * Espera a que el storage esté inicializado
+   */
+  async waitForStorage(): Promise<void> {
+    return this.storageReady$.pipe(
+      filter(ready => ready === true),
+      take(1)
+    ).toPromise() as Promise<void>;
   }
 
   async checkToken() {
     try {
       const token = await this._storage?.get('token');
       if (token) {
-        const decoded: any = jwtDecode(token);
-        const now = Math.floor(Date.now() / 1000); // en segundos
-        this.userSubject.next(decoded.user);
+        try {
+          const decoded: any = jwtDecode(token);
+          const now = Math.floor(Date.now() / 1000); // en segundos
 
-        if (decoded.exp && decoded.exp > now) {
-          this.isLoggedInSubject.next(true);
-        } else {
-          console.log('Token expired');
+          if (decoded.exp && decoded.exp > now) {
+            // Token válido y no expirado
+            // El token del backend tiene: sub (email), role, userId
+            const user = {
+              email: decoded.sub || decoded.email,
+              role: decoded.role?.toLowerCase() || decoded.role,
+              userId: decoded.userId || decoded.user_id,
+              _id: decoded.userId || decoded.user_id
+            };
+            
+            this.userSubject.next(user);
+            this.isLoggedInSubject.next(true);
+            console.log('Token válido encontrado, usuario:', user);
+          } else {
+            // Token expirado
+            console.log('Token expirado, limpiando storage');
+            await this.removeToken();
+          }
+        } catch (decodeError) {
+          // Error al decodificar el token (puede ser token inválido o corrupto)
+          console.error('Error al decodificar token, limpiando storage:', decodeError);
           await this.removeToken();
         }
       } else {
+        console.log('No hay token almacenado');
         this.isLoggedInSubject.next(false);
       }
     } catch (error) {
@@ -71,7 +105,7 @@ export class AuthService {
     return this.isLoggedInSubject.asObservable();
   }
 
-  async setToken(token: string) {
+  async setToken(token: string, userData?: any) {
     try {
       if (!token) {
         throw new Error('Token is empty');
@@ -79,9 +113,22 @@ export class AuthService {
       
       await this._storage?.set('token', token);
       
+      // Decodificar el token para obtener información básica
       const decoded: any = jwtDecode(token);
-      this.userSubject.next(decoded.user);
+      
+      // Construir objeto de usuario desde el token o usar userData si está disponible
+      const user = userData || {
+        email: decoded.sub || decoded.email,
+        role: decoded.role?.toLowerCase() || decoded.role,
+        userId: decoded.userId || decoded.user_id,
+        _id: decoded.userId || decoded.user_id,
+        name: decoded.name,
+        ...decoded
+      };
+      
+      this.userSubject.next(user);
       this.isLoggedInSubject.next(true);
+      console.log('Token guardado, usuario:', user);
       
       return true;
     } catch (error) {
@@ -147,10 +194,19 @@ export class AuthService {
     }).pipe(
       tap(response => {
         if (response.ok && response.data?.token) {
-          this.setToken(response.data.token);
-          if (response.data.role) {
-            this.userSubject.next({ ...this.userSubject.value, role: response.data.role });
-          }
+          // El backend retorna: { token, role, user }
+          const userData = response.data?.user || {};
+          const user = {
+            ...userData,
+            email: userData.email || credentials.email,
+            role: (response.data.role || userData.role)?.toLowerCase(),
+            userId: userData.id || userData._id,
+            _id: userData.id || userData._id
+          };
+          
+          // Guardar token con información del usuario
+          this.setToken(response.data.token, user);
+          console.log('Login exitoso, usuario:', user);
         }
       }),
       catchError(error => {
@@ -175,9 +231,30 @@ export class AuthService {
     return this.userSubject.value;
   }
 
-  getRole() {
+  async getRole(): Promise<string | null> {
+    // Asegurarnos de que el storage esté inicializado
+    await this.waitForStorage();
+    
     const user = this.getUser();
-    return user?.role || null;
+    if (user?.role) {
+      return user.role.toLowerCase();
+    }
+    
+    // Si no hay usuario en el subject, intentar obtenerlo del token
+    const token = await this.getToken();
+    if (token) {
+      try {
+        const decoded: any = jwtDecode(token);
+        const role = decoded.role || decoded.rol;
+        if (role) {
+          return role.toLowerCase();
+        }
+      } catch (error) {
+        console.error('Error decoding token for role', error);
+      }
+    }
+    
+    return null;
   }
 
   async getHeaders() {
@@ -201,11 +278,28 @@ export class AuthService {
 
   async logout() {
     try {
+      console.log('Cerrando sesión y limpiando storage...');
       this.userSubject.next(null);
       await this.removeToken();
       this.router.navigate(['/auth/login']);
     } catch (error) {
       console.error('Error during logout', error);
+    }
+  }
+
+  /**
+   * Limpia completamente el storage
+   * Útil cuando hay problemas con tokens antiguos
+   */
+  async clearStorage() {
+    try {
+      console.log('Limpiando storage completamente...');
+      await this._storage?.clear();
+      this.userSubject.next(null);
+      this.isLoggedInSubject.next(false);
+      console.log('Storage limpiado exitosamente');
+    } catch (error) {
+      console.error('Error limpiando storage', error);
     }
   }
 

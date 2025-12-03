@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { NavController, AlertController, ToastController } from '@ionic/angular';
 import { RutasService } from 'src/app/services/rutas.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-list-ruta',
@@ -13,6 +14,7 @@ export class ListRutaComponent implements OnInit {
   filteredRutas: any[] = [];
   selectedStatus: string = '';
   selectedDate: string = '';
+  loading: boolean = false;
 
   constructor(
     private _rutas: RutasService,
@@ -22,21 +24,38 @@ export class ListRutaComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    // Los datos se cargarán en ionViewDidEnter
+  }
+
+  ionViewDidEnter() {
     this.cargarRutas();
   }
 
   // Método para cargar las rutas
   async cargarRutas() {
+    this.loading = true;
     try {
-      const req = await this._rutas.getRutas();
-      req.subscribe((res: any) => {
-        if (res.ok) {
-          this.rutas = res.rutas;
-          this.applyFilters();
-        }
+      console.log('[ListRutaComponent] Iniciando carga de rutas...');
+      const rutas = await firstValueFrom(this._rutas.getRutas());
+      console.log('[ListRutaComponent] Rutas recibidas:', rutas);
+      // getRutas() ya devuelve un array directamente
+      this.rutas = Array.isArray(rutas) ? rutas : [];
+      console.log('[ListRutaComponent] Rutas procesadas:', this.rutas.length);
+      this.applyFilters();
+      console.log('[ListRutaComponent] Rutas filtradas:', this.filteredRutas.length);
+    } catch (error: any) {
+      console.error('[ListRutaComponent] Error al cargar rutas:', error);
+      console.error('[ListRutaComponent] Detalles del error:', {
+        message: error?.message,
+        status: error?.status,
+        error: error?.error
       });
-    } catch (error) {
-      console.error('Error al cargar rutas:', error);
+      this.rutas = [];
+      this.filteredRutas = [];
+      const errorMessage = error?.message || 'Error al cargar las rutas. Por favor, intente nuevamente.';
+      await this.mostrarToast(errorMessage);
+    } finally {
+      this.loading = false;
     }
   }
 
@@ -69,12 +88,13 @@ export class ListRutaComponent implements OnInit {
   }
 
   // Función para editar una ruta
-  editarRuta(id: string) {
-    this.navCtrl.navigateForward(`/rutas/edit/${id}`);
+  editarRuta(id: string | number) {
+    const idStr = id?.toString() || '';
+    this.navCtrl.navigateForward(`/rutas/edit/${idStr}`);
   }
 
   // Función para eliminar una ruta (simulada)
-  async eliminarRuta(id: string) {
+  async eliminarRuta(id: string | number) {
     const alert = await this.alertCtrl.create({
       header: 'Confirmar',
       message: '¿Eliminar esta ruta?',
@@ -84,7 +104,7 @@ export class ListRutaComponent implements OnInit {
           text: 'Eliminar',
           handler: async () => {
             try {
-              const req = await this._rutas.deleteRuta(id);
+              const req = await this._rutas.deleteRuta(id.toString());
               req.subscribe((res: any) => {
                 if (res.ok) {
                   this.mostrarToast('Ruta eliminada correctamente.');

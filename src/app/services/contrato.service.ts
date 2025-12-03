@@ -2,32 +2,75 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { BaseService } from './base.service';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ContratoService {
-  private apiUrl = `${environment.apiUrl}/contract`;
+export class ContratoService extends BaseService {
+  private readonly endpoint = '/contract';
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    http: HttpClient,
+    authService: AuthService
+  ) {
+    super(http, authService);
+  }
 
   getContracts(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrl);
+    return this.get<{ contracts: any[] }>(this.endpoint).pipe(
+      map(response => {
+        if (response.ok && response.data?.contracts) {
+          return response.data.contracts;
+        }
+        throw new Error(response.error || 'Error al obtener los contratos');
+      })
+    );
   }
 
   getContractById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+    return this.get<{ contract: any }>(`${this.endpoint}/${id}`).pipe(
+      map(response => {
+        if (response.ok && response.data?.contract) {
+          return response.data.contract;
+        }
+        throw new Error(response.error || 'Error al obtener el contrato');
+      })
+    );
   }
 
   createContract(contract: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, contract);
+    return this.post<{ contract: any }>(this.endpoint, contract).pipe(
+      map(response => {
+        if (response.ok && response.data?.contract) {
+          return response.data.contract;
+        }
+        throw new Error(response.error || 'Error al crear el contrato');
+      })
+    );
   }
 
   updateContract(id: string, contract: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, contract);
+    return this.put<{ contract: any }>(`${this.endpoint}/${id}`, contract).pipe(
+      map(response => {
+        if (response.ok && response.data?.contract) {
+          return response.data.contract;
+        }
+        throw new Error(response.error || 'Error al actualizar el contrato');
+      })
+    );
   }
 
-  deleteContract(id: string): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+  deleteContract(id: string): Observable<void> {
+    return this.delete<{ message: string }>(`${this.endpoint}/${id}`).pipe(
+      map(response => {
+        if (response.ok) {
+          return;
+        }
+        throw new Error(response.error || 'Error al eliminar el contrato');
+      })
+    );
   }
 }

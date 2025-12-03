@@ -63,16 +63,12 @@ export class CrearRutaCalendarioComponent implements OnInit {
     try {
       // Cargar Vehicles
       this.vehiculosService.getVehicles().subscribe(
-        (response: ApiResponse<Vehicle[]>) => {
-          if (response.ok && response.data) {
-            // Filtrar vehículos no eliminados y disponibles
-            this.vehicles = response.data.filter(v => 
-              !v.eliminado && 
-              (!v.status || v.status === 'Disponible')
-            );
-          } else {
-            console.error('No se pudieron cargar los vehículos:', response.message);
-          }
+        (vehicles: Vehicle[]) => {
+          // Filtrar vehículos no eliminados y disponibles
+          this.vehicles = vehicles.filter(v => 
+            !v.eliminado && 
+            (!v.status || v.status === 'Disponible')
+          );
         },
         (error) => {
           console.error('Error al cargar vehículos:', error);
@@ -184,7 +180,7 @@ export class CrearRutaCalendarioComponent implements OnInit {
             // Si hay partes seleccionados y la ruta se creó correctamente, asignarlos
             return this.rutasService.asignarPartesARuta(
               rutaId,
-              selectedPartes.map(p => p._id)
+              selectedPartes.map(p => p._id).filter((id): id is string => id !== undefined)
             );
           }
           return new Observable(subscriber => subscriber.next(response));
@@ -210,5 +206,9 @@ export class CrearRutaCalendarioComponent implements OnInit {
 
   cancelar() {
     this.navCtrl.back();
+  }
+
+  getCustomerName(parte: Parte): string {
+    return typeof parte.customer === 'object' ? parte.customer?.name || 'Sin cliente' : 'Sin cliente';
   }
 }

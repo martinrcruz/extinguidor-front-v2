@@ -33,13 +33,15 @@ export class FormFacturacionComponent implements OnInit {
 
   ngOnInit() {
     this.initForm();
-    this.cargarRutasYPartes();
-    this.route.paramMap.subscribe(params => {
-      this.facturacionId = params.get('id');
-      if (this.facturacionId) {
-        this.isEdit = true;
-        this.cargarFacturacion(this.facturacionId);
-      }
+    // Cargar rutas y partes primero, luego verificar si es edición
+    this.cargarRutasYPartes().then(() => {
+      this.route.paramMap.subscribe(params => {
+        this.facturacionId = params.get('id');
+        if (this.facturacionId) {
+          this.isEdit = true;
+          this.cargarFacturacion(this.facturacionId);
+        }
+      });
     });
   }
 
@@ -51,50 +53,80 @@ export class FormFacturacionComponent implements OnInit {
     });
   }
 
-  async cargarRutasYPartes() {
+  async cargarRutasYPartes(): Promise<void> {
     try {
-      // Cargar rutas
-      const reqRutas = await this._rutas.getRutas();
-      reqRutas.subscribe((res: any) => {
-        if (res.ok && res.rutas) {
-          this.rutasDisponibles = res.rutas;
-        }
+      // Cargar rutas y partes en paralelo
+      const rutasPromise = new Promise<void>((resolve) => {
+        this._rutas.getRutas().subscribe({
+          next: (rutas: any[]) => {
+            this.rutasDisponibles = Array.isArray(rutas) ? rutas : [];
+            resolve();
+          },
+          error: (error) => {
+            console.error('Error al cargar rutas:', error);
+            this.rutasDisponibles = [];
+            resolve();
+          }
+        });
       });
 
-      // Cargar partes
-      const reqPartes = await this._partes.getPartes();
-      reqPartes.subscribe((res: any) => {
-        console.log(res);
-        this.partesDisponibles = res.partes;
+      const partesPromise = new Promise<void>((resolve) => {
+        this._partes.getPartes().subscribe({
+          next: (res: any) => {
+            console.log('Partes cargadas:', res);
+            if (res.partes && Array.isArray(res.partes)) {
+              this.partesDisponibles = res.partes;
+            } else if (res.data?.partes && Array.isArray(res.data.partes)) {
+              this.partesDisponibles = res.data.partes;
+            } else {
+              this.partesDisponibles = [];
+            }
+            resolve();
+          },
+          error: (error) => {
+            console.error('Error al cargar partes:', error);
+            this.partesDisponibles = [];
+            resolve();
+          }
+        });
       });
+
+      await Promise.all([rutasPromise, partesPromise]);
     } catch (error) {
       console.error('Error al cargar rutas y partes:', error);
     }
   }
 
  async cargarFacturacion(id: string) {
-  const req = await this._facturacion.getFacturacionById(id);
-  req.subscribe(res => {
-    console.log(res)
-    if (!(res?.ok && res.data?.facturacion)) return;
+  const req = this._facturacion.getFacturacionById(id);
+  req.subscribe({
+    next: (res: any) => {
+      console.log('Facturación cargada:', res);
+      if (!(res?.ok && res.data?.facturacion)) return;
 
-    const f = res.data.facturacion;
+      const f = res.data.facturacion;
+      const rutaId = f.ruta?._id || f.ruta?.id?.toString() || f.ruta;
+      const parteId = f.parte?._id || f.parte?.id?.toString() || f.parte;
 
-    /* ▸ Garantizar que la ruta y el parte existan en sus arrays
-       (por si aún no se han cargado desde el backend) */
-    if (!this.rutasDisponibles.some(r => r._id === f.ruta._id)) {
-      this.rutasDisponibles.push(f.ruta);
+      /* ▸ Garantizar que la ruta y el parte existan en sus arrays
+         (por si aún no se han cargado desde el backend) */
+      if (rutaId && !this.rutasDisponibles.some(r => (r._id || r.id?.toString()) === rutaId)) {
+        this.rutasDisponibles.push(f.ruta);
+      }
+      if (parteId && !this.partesDisponibles.some(p => (p._id || p.id?.toString()) === parteId)) {
+        this.partesDisponibles.push(f.parte);
+      }
+
+      /* ▸ Cargar datos en el formulario */
+      this.facturacionForm.patchValue({
+        facturacion: f.facturacion,
+        ruta:        rutaId,   // solo el _id
+        parte:       parteId   // solo el _id
+      });
+    },
+    error: (error) => {
+      console.error('Error al cargar facturación:', error);
     }
-    if (!this.partesDisponibles.some(p => p._id === f.parte._id)) {
-      this.partesDisponibles.push(f.parte);
-    }
-
-    /* ▸ Cargar datos en el formulario */
-    this.facturacionForm.patchValue({
-      facturacion: f.facturacion,
-      ruta:        f.ruta._id,   // solo el _id
-      parte:       f.parte._id   // solo el _id
-    });
   });
 }
 

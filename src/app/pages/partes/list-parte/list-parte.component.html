@@ -3,8 +3,14 @@
     <ion-buttons slot="start">
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
-    <ion-title>Partes</ion-title>
+    <ion-title>Partes de Trabajo</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="exportarExcel()" title="Exportar a Excel">
+        <ion-icon name="document-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="exportarPDF()" title="Exportar a PDF">
+        <ion-icon name="document-text-outline"></ion-icon>
+      </ion-button>
       <ion-button (click)="nuevaParte()">
         <ion-icon name="add-circle-outline"></ion-icon>
       </ion-button>
@@ -14,98 +20,135 @@
 
 <ion-content>
   <!-- Barra de búsqueda y filtros -->
-  <ion-searchbar (ionInput)="filtrar($event)" placeholder="Buscar parte..." animated class="ion-margin">
+  <ion-searchbar 
+    (ionInput)="filtrar($event)" 
+    placeholder="Buscar parte..." 
+    animated 
+    class="ion-margin"
+    debounce="300">
   </ion-searchbar>
 
-  <ion-item-group class="ion-margin">
-    <ion-item>
-      <ion-label>Filtrar por estado</ion-label>
-      <ion-select [(ngModel)]="estadoFiltro" (ionChange)="aplicarFiltros()">
-        <ion-select-option value="">Todos</ion-select-option>
-        <ion-select-option value="Pendiente">Pendiente</ion-select-option>
-        <ion-select-option value="EnProceso">En Proceso</ion-select-option>
-        <ion-select-option value="Finalizado">Finalizado</ion-select-option>
-      </ion-select>
-    </ion-item>
+  <ion-card class="filters">
+    <ion-card-content>
+      <ion-grid>
+        <ion-row>
+          <ion-col size="12" sizeMd="6">
+            <ion-item lines="none">
+              <ion-label>Estado</ion-label>
+              <ion-select [(ngModel)]="estadoFiltro" (ionChange)="onFiltroChange()" interface="popover">
+                <ion-select-option value="">Todos</ion-select-option>
+                <ion-select-option value="Pendiente">Pendiente</ion-select-option>
+                <ion-select-option value="EnProceso">En Proceso</ion-select-option>
+                <ion-select-option value="Finalizado">Finalizado</ion-select-option>
+                <ion-select-option value="Cancelado">Cancelado</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
 
-    <ion-item>
-      <ion-label>Filtrar por tipo</ion-label>
-      <ion-select [(ngModel)]="tipoFiltro" (ionChange)="aplicarFiltros()">
-        <ion-select-option value="">Todos</ion-select-option>
-        <ion-select-option value="Mantenimiento">Mantenimiento</ion-select-option>
-        <ion-select-option value="Correctivo">Correctivo</ion-select-option>
-        <ion-select-option value="Visitas">Visitas</ion-select-option>
-        <ion-select-option value="Obra">Obra</ion-select-option>
-      </ion-select>
-    </ion-item>
-  </ion-item-group>
+          <ion-col size="12" sizeMd="6">
+            <ion-item lines="none">
+              <ion-label>Tipo</ion-label>
+              <ion-select [(ngModel)]="tipoFiltro" (ionChange)="onFiltroChange()" interface="popover">
+                <ion-select-option value="">Todos</ion-select-option>
+                <ion-select-option value="Mantenimiento">Mantenimiento</ion-select-option>
+                <ion-select-option value="Correctivo">Correctivo</ion-select-option>
+                <ion-select-option value="Visitas">Visitas</ion-select-option>
+                <ion-select-option value="Obra">Obra</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-spinner">
+    <ion-spinner name="circular"></ion-spinner>
+    <p>Cargando partes...</p>
+  </div>
 
   <!-- Lista de partes -->
-  <ion-list>
-    <ion-card *ngFor="let p of filteredPartes" class="parte-card">
+  <ion-list *ngIf="!isLoading" class="animate-fade-in">
+    <ion-card *ngFor="let p of filteredPartes" class="parte-card animate-fade-in">
       <ion-card-header>
         <ion-card-subtitle>
-          <ion-chip [ngClass]="getTipoParteClass(p.type)">
+          <ion-chip [ngClass]="getTipoParteClass(p.type)" class="badge">
             {{ p.type }}
           </ion-chip>
-          <ion-chip [ngClass]="stateColor(p.state)">
-            {{ p.state }}
+          <ion-chip [ngClass]="stateColor(p.state)" class="badge">
+            {{ p.state === 'EnProceso' ? 'En Proceso' : p.state }}
           </ion-chip>
         </ion-card-subtitle>
-        <ion-card-title>{{ p.description }}</ion-card-title>
+        <ion-card-title>{{ p.title || p.description }}</ion-card-title>
       </ion-card-header>
 
       <ion-card-content>
+        <div class="parte-description" *ngIf="p.title && p.description">
+          <p>{{ p.description }}</p>
+        </div>
+        
         <ion-grid>
           <ion-row>
-            <ion-col size="6">
+            <ion-col size="12" sizeMd="6">
               <ion-item lines="none">
-                <ion-icon name="calendar-outline" slot="start"></ion-icon>
+                <ion-icon name="calendar-outline" slot="start" color="primary"></ion-icon>
                 <ion-label>
                   <p>Fecha</p>
                   <h3>{{ p.date | dateLocal:'dd/MM/yyyy' }}</h3>
                 </ion-label>
               </ion-item>
             </ion-col>
-            <ion-col size="6">
+            <ion-col size="12" sizeMd="6">
               <ion-item lines="none">
-                <ion-icon name="business-outline" slot="start"></ion-icon>
+                <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
                 <ion-label>
                   <p>Cliente</p>
-                  <h3>{{ p.customer != null ? p.customer.name : 'Sin cliente' }}</h3>
+                  <h3>{{ getCustomerName(p) }}</h3>
                 </ion-label>
               </ion-item>
             </ion-col>
           </ion-row>
           <ion-row>
-            <ion-col size="6">
+            <ion-col size="12" sizeMd="6">
               <ion-item lines="none">
-                <ion-icon name="map-outline" slot="start"></ion-icon>
+                <ion-icon name="map-outline" slot="start" color="primary"></ion-icon>
                 <ion-label>
                   <p>Ruta</p>
-                  <h3>{{ p.ruta != null ? p.ruta.name : 'No asignada'  }}</h3>
+                  <h3>{{ getRutaName(p) }}</h3>
                 </ion-label>
               </ion-item>
             </ion-col>
-            <ion-col size="6">
+            <ion-col size="12" sizeMd="6">
               <ion-item lines="none">
-                <ion-icon name="cash-outline" slot="start"></ion-icon>
+                <ion-icon name="cash-outline" slot="start" color="success"></ion-icon>
                 <ion-label>
                   <p>Facturación</p>
-                  <h3>{{ p.facturacion || 0 }} €</h3>
+                  <h3>{{ p.facturacion || 0 | currency:'EUR' }}</h3>
+                </ion-label>
+              </ion-item>
+            </ion-col>
+          </ion-row>
+          <ion-row *ngIf="p.address">
+            <ion-col size="12">
+              <ion-item lines="none">
+                <ion-icon name="location-outline" slot="start" color="primary"></ion-icon>
+                <ion-label>
+                  <p>Dirección</p>
+                  <h3>{{ p.address }}</h3>
                 </ion-label>
               </ion-item>
             </ion-col>
           </ion-row>
         </ion-grid>
 
-        <div class="ion-margin-top">
-          <ion-button expand="block" (click)="editarParte(p._id)" class="ion-margin-bottom">
+        <div class="parte-actions">
+          <ion-button expand="block" (click)="editarParte(p._id || p.id)" class="button-primary">
             <ion-icon name="create-outline" slot="start"></ion-icon>
             Editar
           </ion-button>
           
-          <ion-button expand="block" fill="outline" color="danger" (click)="eliminarParte(p._id)">
+          <ion-button expand="block" fill="outline" color="danger" (click)="eliminarParte(p._id || p.id)" class="delete-btn">
             <ion-icon name="trash-outline" slot="start"></ion-icon>
             Eliminar
           </ion-button>
@@ -114,13 +157,54 @@
     </ion-card>
   </ion-list>
 
-  <!-- Estado vacío -->
-  <div *ngIf="filteredPartes.length === 0" class="ion-padding ion-text-center">
-    <ion-icon name="document-text-outline" style="font-size: 48px; color: #ccc;"></ion-icon>
-    <h3>No hay partes</h3>
-    <p>No se encontraron partes que coincidan con los criterios de búsqueda</p>
+  <!-- Controles de paginación -->
+  <div *ngIf="!isLoading && totalPages > 1" class="pagination-container">
+    <ion-grid>
+      <ion-row class="ion-align-items-center ion-justify-content-center">
+        <ion-col size="12" sizeMd="8" class="ion-text-center">
+          <!-- Información de paginación -->
+          <div class="pagination-info">
+            <p>{{ paginationInfo }}</p>
+          </div>
+          
+          <!-- Controles de navegación -->
+          <div class="pagination-controls">
+            <ion-button 
+              fill="outline" 
+              size="small" 
+              [disabled]="!hasPrevPage"
+              (click)="prevPage()">
+              <ion-icon name="chevron-back-outline"></ion-icon>
+              Anterior
+            </ion-button>
+            
+            <!-- Indicador de página actual -->
+            <ion-chip color="primary" class="page-indicator">
+              {{ currentPage + 1 }} / {{ totalPages }}
+            </ion-chip>
+            
+            <ion-button 
+              fill="outline" 
+              size="small" 
+              [disabled]="!hasNextPage"
+              (click)="nextPage()">
+              Siguiente
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
   </div>
 
-  <!-- Toast para mensajes -->
-  <ion-toast [isOpen]="!!error" message="{{ error }}" duration="3000" (didDismiss)="error = ''"></ion-toast>
+  <!-- Estado vacío -->
+  <div *ngIf="!isLoading && filteredPartes.length === 0" class="empty-state">
+    <ion-icon name="document-text-outline"></ion-icon>
+    <h3>No hay partes</h3>
+    <p>No se encontraron partes que coincidan con los criterios de búsqueda</p>
+    <ion-button (click)="nuevaParte()" class="button-primary">
+      <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+      Crear Primera Parte
+    </ion-button>
+  </div>
 </ion-content>

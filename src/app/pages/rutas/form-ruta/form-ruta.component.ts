@@ -99,22 +99,21 @@ export class FormRutaComponent implements OnInit {
   }
 
   async cargarRuta(id: string) {
-    const req = await this._rutas.getRutaById(id);
+    const req = this._rutas.getRutaById(id);
     req.subscribe({
-      next: (res: any) => {
-        if (!res.ok || !res.ruta) return;
+      next: (ruta: any) => {
+        if (!ruta) return;
 
-        const ruta = res.ruta;
+        // El servicio devuelve directamente el RouteResponse
         this.rutaForm.patchValue({
-          name: ruta.name?._id ?? ruta.name,
+          name: ruta.name?.id?.toString() || ruta.name?._id || ruta.name || '',
           date: ruta.date ? isoDateOnly(ruta.date) : '',
-          state: ruta.state,
-          vehicle: ruta.vehicle?._id ?? ruta.vehicle ?? '',
-          users: Array.isArray(ruta.users) ? ruta.users.map((u: any) => u._id) : [],
-          // clientes: Array.isArray(ruta.clientes) ? ruta.clientes.map((c: any) => c._id) : [],
+          state: ruta.state || 'Pendiente',
+          vehicle: ruta.vehicle?.id?.toString() || ruta.vehicle?._id || ruta.vehicle || '',
+          users: Array.isArray(ruta.users) ? ruta.users.map((u: any) => u.id?.toString() || u._id || u) : [],
           comentarios: ruta.comentarios ?? '',
-          encargado: ruta.encargado?._id ?? ruta.encargado ?? '',
-          herramientas: ruta.herramientas ?? [],
+          encargado: ruta.encargado?.id?.toString() || ruta.encargado?._id || ruta.encargado || '',
+          herramientas: Array.isArray(ruta.herramientas) ? ruta.herramientas.map((h: any) => h.id?.toString() || h._id || h) : [],
         });
       },
       error: (err) => console.error('Error al cargar ruta:', err),

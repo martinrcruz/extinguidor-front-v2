@@ -6,7 +6,7 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns
 import { es } from 'date-fns/locale';
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Parte } from '../../interfaces/parte.interface';
+import { Parte } from '../../models/parte.model';
 import { parseDateAsLocal } from 'src/app/shared/utils/date.utils';
 
 interface Ruta {
@@ -184,6 +184,8 @@ export class WorkerDashboardComponent implements OnInit, OnDestroy {
   }
 
   async updateParteStatus(parteId: string, newStatus: 'Pendiente' | 'EnProceso' | 'Finalizado') {
+    if (!parteId) return;
+    
     try {
       const req = await this.workerDashboardService.updateParteStatus(parteId, newStatus);
       const subscription = req.subscribe({
@@ -225,6 +227,10 @@ export class WorkerDashboardComponent implements OnInit, OnDestroy {
   }
 
   getPartesDeRuta(rutaId: string): Parte[] {
-    return this.partes.filter(parte => parte.ruta._id === rutaId);
+    return this.partes.filter(parte => {
+      if (!parte.ruta) return false;
+      const rutaObj = typeof parte.ruta === 'object' ? parte.ruta : null;
+      return rutaObj?._id === rutaId;
+    });
   }
 } 
