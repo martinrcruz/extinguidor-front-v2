@@ -13,6 +13,9 @@ export interface VehicleResponse {
   fuel?: string;
   type?: string;
   photo?: string;
+  kilometraje?: number;
+  fechaAdquisicion?: string;
+  fechaUltimoMantenimiento?: string;
   createdDate?: string;
   updatedDate?: string;
 }
@@ -37,6 +40,8 @@ export interface Vehicle {
   photo?: string;
   lastMaintenance?: Date;
   kilometraje?: number;
+  fechaAdquisicion?: string;
+  fechaUltimoMantenimiento?: string;
   assignedTo?: {
     _id: string;
     name: string;
@@ -78,6 +83,9 @@ export class VehiculosService extends BaseService {
             fuel: v.fuel || '',
             type: v.type || '',
             photo: v.photo,
+            kilometraje: v.kilometraje,
+            fechaAdquisicion: v.fechaAdquisicion,
+            fechaUltimoMantenimiento: v.fechaUltimoMantenimiento,
             createdDate: v.createdDate
           } as Vehicle));
         }
@@ -104,6 +112,9 @@ export class VehiculosService extends BaseService {
             fuel: v.fuel || '',
             type: v.type || '',
             photo: v.photo,
+            kilometraje: v.kilometraje,
+            fechaAdquisicion: v.fechaAdquisicion,
+            fechaUltimoMantenimiento: v.fechaUltimoMantenimiento,
             createdDate: v.createdDate
           } as Vehicle;
         }
@@ -130,6 +141,9 @@ export class VehiculosService extends BaseService {
             fuel: v.fuel || '',
             type: v.type || '',
             photo: v.photo,
+            kilometraje: v.kilometraje,
+            fechaAdquisicion: v.fechaAdquisicion,
+            fechaUltimoMantenimiento: v.fechaUltimoMantenimiento,
             createdDate: v.createdDate
           } as Vehicle;
         }
@@ -156,6 +170,9 @@ export class VehiculosService extends BaseService {
             fuel: v.fuel || '',
             type: v.type || '',
             photo: v.photo,
+            kilometraje: v.kilometraje,
+            fechaAdquisicion: v.fechaAdquisicion,
+            fechaUltimoMantenimiento: v.fechaUltimoMantenimiento,
             createdDate: v.createdDate
           } as Vehicle;
         }

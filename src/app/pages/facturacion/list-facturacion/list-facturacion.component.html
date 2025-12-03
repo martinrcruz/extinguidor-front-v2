@@ -44,7 +44,7 @@
           <ion-card-header>
             <ion-card-title>
               <ion-icon name="document-text-outline"></ion-icon>
-              Facturación #{{ f._id }}
+              Facturación #{{ getFacturacionId(f) }}
             </ion-card-title>
             <ion-card-subtitle>
               <ion-icon name="calendar-outline"></ion-icon>
@@ -57,22 +57,22 @@
               <span class="fecha">{{ formatDate(f.createdDate) }}</span>
             </div>
             
-            <div class="ruta-info">
+            <div class="ruta-info" *ngIf="f.ruta">
               <ion-icon name="map-outline"></ion-icon>
-              <span>{{ f.ruta.name.name }}</span>
+              <span>{{ getRutaName(f.ruta) || 'Sin ruta asignada' }}</span>
             </div>
             
-            <div class="parte-info">
+            <div class="parte-info" *ngIf="f.parte">
               <ion-icon name="document-outline"></ion-icon>
-              <span>{{ f.parte.description }}</span>
+              <span>{{ getParteDescription(f.parte) || 'Sin parte asignado' }}</span>
             </div>
             
             <div class="facturacion-actions">
-              <ion-button fill="outline" [routerLink]="['/facturacion/edit', f._id]">
+              <ion-button fill="outline" [routerLink]="['/facturacion/edit', getFacturacionId(f)]">
                 <ion-icon name="create-outline" slot="start"></ion-icon>
                 Editar
               </ion-button>
-              <ion-button color="danger" (click)="eliminarFactura(f._id)">
+              <ion-button color="danger" (click)="eliminarFactura(getFacturacionId(f))">
                 <ion-icon name="trash-outline" slot="start"></ion-icon>
                 Eliminar
               </ion-button>

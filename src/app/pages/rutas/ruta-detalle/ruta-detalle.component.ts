@@ -32,15 +32,33 @@ export class RutaDetalleComponent implements OnInit {
   }
 
   async cargarRuta(id: string) {
-    const req = await this._rutas.getRutaById(id);
-    req.subscribe((res: any) => {
-      if (res.ok) {
-        this.ruta = res.ruta;
-        this.materiales = res.ruta.materiales || [];
-        this.partesAsignados = res.ruta.partes || [];
-        this.facturaciones = res.ruta.facturacion || [];
+    try {
+      // getRutaById devuelve directamente el RouteResponse
+      const ruta = await this._rutas.getRutaById(id).toPromise();
+      if (ruta) {
+        this.ruta = ruta;
+        // Los materiales vienen en herramientas
+        this.materiales = ruta.herramientas || [];
+        // Cargar partes asignados a esta ruta
+        await this.cargarPartes(id);
+        // Las facturaciones se cargarían desde otro servicio si existe
+        this.facturaciones = [];
       }
-    });
+    } catch (error) {
+      console.error('Error al cargar ruta:', error);
+    }
+  }
+
+  async cargarPartes(rutaId: string) {
+    try {
+      const response = await this._rutas.getPartesDeRuta(rutaId).toPromise();
+      if (response && response.ok && response.data?.partes) {
+        this.partesAsignados = response.data.partes;
+      }
+    } catch (error) {
+      console.error('Error al cargar partes:', error);
+      this.partesAsignados = [];
+    }
   }
 
   seleccionarTab(tab: any) {

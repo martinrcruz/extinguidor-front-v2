@@ -23,11 +23,33 @@ export class ListFacturacionComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
+    // No cargar aquí, se cargará en ionViewDidEnter
+  }
+
+  async ionViewDidEnter(){
     await this.cargarFacturaciones();
   }
 
-  ionViewDidEnter(){
-   this.cargarFacturaciones();
+  /**
+   * Normaliza el ID de una facturación (convierte id a _id como string)
+   */
+  private normalizarId(facturacion: any): string {
+    if (!facturacion) return '';
+    if (facturacion._id) return facturacion._id.toString();
+    if (facturacion.id !== undefined && facturacion.id !== null) return facturacion.id.toString();
+    return '';
+  }
+
+  /**
+   * Normaliza una facturación para asegurar que tenga _id
+   */
+  private normalizarFacturacion(facturacion: any): any {
+    if (!facturacion) return facturacion;
+    const id = this.normalizarId(facturacion);
+    return {
+      ...facturacion,
+      _id: id
+    };
   }
 
   async cargarFacturaciones() {
@@ -40,7 +62,9 @@ export class ListFacturacionComponent implements OnInit {
       const response = await firstValueFrom(this.facturacionService.getFacturacion());
       console.log(response)
       if (response && response.ok && response.data) {
-        this.facturaciones = response.data.facturacion || [];
+        // Normalizar las facturaciones para asegurar que tengan _id
+        const facturacionesRaw = response.data.facturacion || [];
+        this.facturaciones = facturacionesRaw.map((f: any) => this.normalizarFacturacion(f));
         this.calcularTotal();
         this.error = ''; // Limpiar error si la carga fue exitosa
       } else {
@@ -86,6 +110,43 @@ export class ListFacturacionComponent implements OnInit {
     }).format(amount);
   }
 
+  /**
+   * Obtiene el nombre de la ruta manejando diferentes estructuras
+   */
+  getRutaName(ruta: any): string {
+    if (!ruta) return '';
+    // El backend puede devolver name como string directo o como objeto anidado
+    if (typeof ruta.name === 'string') {
+      return ruta.name;
+    }
+    if (ruta.name && ruta.name.name) {
+      return ruta.name.name;
+    }
+    return '';
+  }
+
+  /**
+   * Obtiene la descripción del parte manejando diferentes estructuras
+   */
+  getParteDescription(parte: any): string {
+    if (!parte) return '';
+    // El backend devuelve description y title
+    if (parte.description) {
+      return parte.description;
+    }
+    if (parte.title) {
+      return parte.title;
+    }
+    return '';
+  }
+
+  /**
+   * Obtiene el ID de una facturación de forma segura
+   */
+  getFacturacionId(facturacion: any): string {
+    return this.normalizarId(facturacion);
+  }
+
   getEstadoClass(estado: string): string {
     switch (estado) {
       case 'Pagada':
@@ -99,7 +160,13 @@ export class ListFacturacionComponent implements OnInit {
     }
   }
 
-  async eliminarFactura(id: string) {
+  async eliminarFactura(id: string | undefined) {
+    // Asegurar que el ID sea válido
+    if (!id) {
+      console.error('Error: ID de facturación no válido');
+      return;
+    }
+
     const toast = await this.toastCtrl.create({
       message: '¿Está seguro de eliminar esta facturación?',
       position: 'bottom',
@@ -114,7 +181,10 @@ export class ListFacturacionComponent implements OnInit {
             try {
               const response = await firstValueFrom(this.facturacionService.deleteFacturacion(id));
               if (response && response.ok) {
-                this.facturaciones = this.facturaciones.filter(f => f._id !== id);
+                this.facturaciones = this.facturaciones.filter(f => {
+                  const factId = this.normalizarId(f);
+                  return factId !== id;
+                });
                 this.calcularTotal();
                 const successToast = await this.toastCtrl.create({
                   message: 'Facturación eliminada correctamente',

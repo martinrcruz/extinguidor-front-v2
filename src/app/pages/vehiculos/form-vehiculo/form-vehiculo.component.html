@@ -69,6 +69,34 @@
         </ion-item>
       </div>
 
+      <div class="form-section">
+        <h2>Información Adicional</h2>
+        <ion-item>
+          <ion-label position="stacked">Kilometraje</ion-label>
+          <ion-input formControlName="kilometraje" type="number" placeholder="Ej: 50000"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Fecha de Adquisición</ion-label>
+          <ion-datetime 
+            formControlName="fechaAdquisicion"
+            display-format="yyyy-MM-dd"
+            picker-format="yyyy-MM-dd"
+            placeholder="Seleccione fecha de adquisición">
+          </ion-datetime>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Fecha del Último Mantenimiento</ion-label>
+          <ion-datetime 
+            formControlName="fechaUltimoMantenimiento"
+            display-format="yyyy-MM-dd"
+            picker-format="yyyy-MM-dd"
+            placeholder="Seleccione fecha del último mantenimiento">
+          </ion-datetime>
+        </ion-item>
+      </div>
+
       <div class="form-actions">
         <ion-button expand="block" type="submit" [disabled]="vehicleForm.invalid">
           {{ isEdit ? 'Actualizar' : 'Crear' }}

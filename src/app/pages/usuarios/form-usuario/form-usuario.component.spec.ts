@@ -19,7 +19,7 @@ describe('FormUsuarioComponent', () => {
     code: 'USR001',
     email: 'usuario@example.com',
     phone: '123456789',
-    role: 'worker',
+    role: 'WORKER',
     junior: false
   };
 
@@ -76,8 +76,8 @@ describe('FormUsuarioComponent', () => {
     expect(component.usuarioForm.get('email')?.hasError('email')).toBeFalsy();
   });
 
-  it('debería tener role por defecto como worker', () => {
-    expect(component.usuarioForm.get('role')?.value).toBe('worker');
+  it('debería tener role por defecto como WORKER', () => {
+    expect(component.usuarioForm.get('role')?.value).toBe('WORKER');
   });
 
   it('debería crear un usuario cuando el formulario es válido y no está en modo edición', async () => {
@@ -87,7 +87,7 @@ describe('FormUsuarioComponent', () => {
       name: 'Usuario Test',
       email: 'test@example.com',
       phone: '123456789',
-      role: 'worker',
+      role: 'WORKER',
       password: 'password123'
     });
 
@@ -106,7 +106,7 @@ describe('FormUsuarioComponent', () => {
       name: 'Usuario Actualizado',
       email: 'updated@example.com',
       phone: '987654321',
-      role: 'admin'
+      role: 'ADMIN'
     });
 
     await component.guardar();
@@ -206,7 +206,7 @@ describe('FormUsuarioComponent', () => {
       name: 'Usuario Test',
       email: 'test@example.com',
       phone: '123456789',
-      role: 'worker'
+      role: 'WORKER'
     });
 
     await component.guardar();

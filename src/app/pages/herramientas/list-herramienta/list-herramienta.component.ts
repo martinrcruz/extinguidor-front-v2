@@ -40,6 +40,16 @@ export class ListHerramientaComponent implements OnInit {
         (res: any) => {
           if (res.ok) {
             this.herramientas = res.data.herramientas;
+            // Verificar que las herramientas tengan _id
+            this.herramientas.forEach((h: any, index: number) => {
+              if (!h._id) {
+                console.warn(`Herramienta en índice ${index} no tiene _id:`, h);
+                // Intentar usar 'id' si existe
+                if (h.id) {
+                  h._id = String(h.id);
+                }
+              }
+            });
             this.applyFilters();
           }
         },
@@ -83,6 +93,12 @@ export class ListHerramientaComponent implements OnInit {
   }
 
   editarHerramienta(id: string) {
+    if (!id) {
+      console.error('No se proporcionó el ID de la herramienta para editar');
+      this.mostrarToast('Error: No se pudo obtener el ID de la herramienta');
+      return;
+    }
+    console.log('Navegando a editar herramienta con ID:', id);
     this.navCtrl.navigateForward(`/herramientas/edit/${id}`);
   }
 

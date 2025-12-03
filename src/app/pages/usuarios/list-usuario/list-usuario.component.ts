@@ -37,6 +37,11 @@ async cargarUsuarios() {
     req.subscribe(({ ok, data }) => {
       if (ok && data && data.users) {
         this.usuarios = data.users;
+        // Log para debuggear la estructura de los usuarios
+        if (this.usuarios.length > 0) {
+          console.log('Ejemplo de usuario recibido:', this.usuarios[0]);
+          console.log('ID del primer usuario:', this.usuarios[0].id, 'o _id:', this.usuarios[0]._id);
+        }
         this.applyFilters();
       } else {
         this.usuarios = [];
@@ -85,11 +90,23 @@ async cargarUsuarios() {
   }
 
   // Navegar al formulario de editar
-  editarUsuario(id: string) {
-    this.navCtrl.navigateForward(`/usuarios/edit/${id}`);
+  editarUsuario(id: string | number | undefined) {
+    if (!id) {
+      console.error('Error: No se pudo obtener el ID del usuario');
+      return;
+    }
+    // Convertir a string si es número
+    const idStr = String(id);
+    console.log('Navegando a editar usuario con ID:', idStr);
+    this.navCtrl.navigateForward(`/usuarios/edit/${idStr}`);
   }
 
- async eliminarUsuario(id: string) {
+ async eliminarUsuario(id: string | number | undefined) {
+  if (!id) {
+    console.error('Error: No se pudo obtener el ID del usuario para eliminar');
+    return;
+  }
+  const idStr = String(id);
   const alert = await this.alertCtrl.create({
     header: 'Confirmar',
     message: '¿Eliminar este usuario?',
@@ -98,10 +115,10 @@ async cargarUsuarios() {
       {
         text: 'Eliminar',
         handler: async () => {
-          const del$ = await this._usuarios.deleteUser(id);
+          const del$ = await this._usuarios.deleteUser(idStr);
           del$.subscribe(({ ok }) => {
             if (ok) {
-              this.usuarios = this.usuarios.filter(u => u._id !== id);
+              this.usuarios = this.usuarios.filter(u => (u.id || u._id) !== id);
               this.applyFilters();
               this.mostrarToast('Usuario eliminado.');
             }

@@ -32,7 +32,7 @@ export class AppComponent {
     { title: 'Partes',     url: '/partes',      icon: 'bi-file-text' },
     { title: 'Contratos',  url: '/clientes',    icon: 'bi-people-fill' },
     { title: 'Facturación',url: '/facturacion', icon: 'bi-cash-stack' },
-    { title: 'Alertas',    url: '/alertas',     icon: 'bi-bell' },
+    // { title: 'Alertas',    url: '/alertas',     icon: 'bi-bell' },
     {
       title: 'Administración',
       icon: 'bi-briefcase',

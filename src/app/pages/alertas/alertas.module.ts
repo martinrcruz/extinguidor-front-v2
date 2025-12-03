@@ -5,6 +5,7 @@ import { FormAlertaComponent } from './form-alerta/form-alerta.component';
 import { IonicModule } from '@ionic/angular';
 import { SharedModule } from 'src/app/shared/shared.module';
 import { ReactiveFormsModule } from '@angular/forms';
+import { AlertasRoutingModule } from './alertas-routing.module';
 
 
 
@@ -14,7 +15,8 @@ import { ReactiveFormsModule } from '@angular/forms';
     SharedModule,
     CommonModule,
     ReactiveFormsModule,
-    IonicModule
+    IonicModule,
+    AlertasRoutingModule
   ]
 })
 export class AlertasModule { }

@@ -9,10 +9,12 @@ import { BaseService } from './base.service';
 
 export interface Material {
   _id?: string;
+  id?: number;
   name: string;
-  description: string;
-  type: string;
-  state: string;
+  code?: string;
+  description?: string;
+  type?: string;
+  state?: string;
   eliminado?: boolean;
 }
 
@@ -39,10 +41,22 @@ export class MaterialesService extends BaseService {
   }
 
   getMaterials(): Observable<Material[]> {
-    return this.get<{ materials: Material[] }>(this.endpoint).pipe(
+    return this.get<Material[]>(this.endpoint).pipe(
       map(response => {
-        if (response.ok && response.data?.materials) {
-          return response.data.materials;
+        if (response.ok && response.data) {
+          // El backend devuelve List<MaterialResponse> directamente en data
+          const materials = Array.isArray(response.data) ? response.data : [];
+          // Mapear MaterialResponse (con id) a Material (con _id e id)
+          return materials.map((m: any) => ({
+            _id: m.id?.toString(),
+            id: m.id,
+            name: m.name,
+            code: m.code,
+            description: m.description,
+            type: m.type,
+            state: m.state,
+            eliminado: m.eliminado
+          } as Material));
         }
         throw new Error(response.error || 'Error al obtener los materiales');
       })

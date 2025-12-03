@@ -42,6 +42,31 @@
             rows="4">
           </ion-textarea>
         </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Fecha del Último Mantenimiento</ion-label>
+          <ion-datetime 
+            formControlName="fechaUltimoMantenimiento"
+            display-format="yyyy-MM-dd"
+            picker-format="yyyy-MM-dd"
+            [max]="maxDate"
+            placeholder="Seleccione fecha del último mantenimiento">
+          </ion-datetime>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Color</ion-label>
+          <ion-input formControlName="color" placeholder="Ej: rojo, azul, verde"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Categoría</ion-label>
+          <ion-select formControlName="categoria" placeholder="Seleccione una categoría">
+            <ion-select-option *ngFor="let category of categorias" [value]="category.value">
+              {{ category.label }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
       </div>
 
       <div class="form-actions">

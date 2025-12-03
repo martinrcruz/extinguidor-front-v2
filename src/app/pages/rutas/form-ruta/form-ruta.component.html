@@ -30,7 +30,7 @@
         <ion-item>
           <ion-label position="stacked">Ruta</ion-label>
           <ion-select formControlName="name" placeholder="Seleccione una ruta">
-            <ion-select-option *ngFor="let rn of listaRutaN" [value]="rn._id">
+            <ion-select-option *ngFor="let rn of listaRutaN" [value]="rn.id || rn._id">
               {{ rn.name }}
             </ion-select-option>
           </ion-select>
@@ -51,7 +51,7 @@
         <ion-item>
           <ion-label position="stacked">Vehículo</ion-label>
           <ion-select formControlName="vehicle" placeholder="Seleccione vehículo">
-            <ion-select-option *ngFor="let v of listaVehicles" [value]="v._id">
+            <ion-select-option *ngFor="let v of listaVehicles" [value]="v.id || v._id">
               {{ v.brand }} - {{ v.matricula }}
             </ion-select-option>
           </ion-select>
@@ -60,7 +60,7 @@
         <ion-item>
           <ion-label position="stacked">Encargado</ion-label>
           <ion-select formControlName="encargado" placeholder="Seleccione encargado">
-            <ion-select-option *ngFor="let u of users" [value]="u._id">
+            <ion-select-option *ngFor="let u of users" [value]="u.id || u._id">
               {{ u.name }}
             </ion-select-option>
           </ion-select>
@@ -70,7 +70,7 @@
         <ion-item>
           <ion-label position="stacked">Trabajadores</ion-label>
           <ion-select formControlName="users" multiple="true" placeholder="Seleccione trabajadores">
-            <ion-select-option *ngFor="let user of users" [value]="user._id">
+            <ion-select-option *ngFor="let user of users" [value]="user.id || user._id">
               {{ user.name }}
             </ion-select-option>
           </ion-select>
@@ -89,11 +89,11 @@
       <div class="form-section">
         <h2>Detalles Adicionales</h2>
         <ion-item>
-          <ion-label position="stacked">Herramientas</ion-label>
+          <ion-label position="stacked">Herramientas/Materiales</ion-label>
           <ion-select formControlName="herramientas" multiple="true" placeholder="Seleccione herramientas">
-            <ion-select-option value="Taladro">Taladro</ion-select-option>
-            <ion-select-option value="Escalera">Escalera</ion-select-option>
-            <!-- etc -->
+            <ion-select-option *ngFor="let material of listaMateriales" [value]="material.id || material._id">
+              {{ material.name }} ({{ material.code }})
+            </ion-select-option>
           </ion-select>
         </ion-item>
 

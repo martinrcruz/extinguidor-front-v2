@@ -46,7 +46,7 @@ export class LoginComponent implements OnInit {
           this.navCtrl.navigateRoot('/worker-dashboard', { animated: true });
         } else if (normalizedRole === 'admin') {
           console.log('Login: Redirigiendo a home');
-          this.navCtrl.navigateRoot('/home', { animated: true });
+          this.navCtrl.navigateRoot('/calendario', { animated: true });
         } else {
           // Fallback a calendario si no hay rol claro
           console.log('Login: Redirigiendo a calendario (fallback)');

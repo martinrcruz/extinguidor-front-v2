@@ -81,11 +81,11 @@
             </div>
             
             <div class="usuario-actions">
-              <ion-button fill="outline" (click)="editarUsuario(u._id)">
+              <ion-button fill="outline" (click)="editarUsuario(u.id || u._id)">
                 <ion-icon name="create-outline" slot="start"></ion-icon>
                 Editar
               </ion-button>
-              <ion-button color="danger" (click)="eliminarUsuario(u._id)">
+              <ion-button color="danger" (click)="eliminarUsuario(u.id || u._id)">
                 <ion-icon name="trash-outline" slot="start"></ion-icon>
                 Eliminar
               </ion-button>

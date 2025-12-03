@@ -130,7 +130,7 @@ export class FormZonaComponent implements OnInit {
                 this._zipcodes.createZipcode({ codezip: values.codezip.trim(), name: values.name })
               );
 
-              if (res.ok) {
+              if (res.ok && res.data?.zipcode) {
                 const nuevoZip = res.data.zipcode;
                 /* 3. Añadir a la lista y seleccionar ------------ */
                 this.zipcodesDisponibles.push(nuevoZip);
@@ -160,7 +160,7 @@ export class FormZonaComponent implements OnInit {
     if (!zipSeleccionado && data.codezip) {
       try {
         const nuevo = await firstValueFrom(this._zipcodes.createZipcode({ codezip: data.codezip }));
-        if (nuevo.ok) {
+        if (nuevo.ok && nuevo.data?.zipcode) {
           this.zipcodesDisponibles.push(nuevo.data.zipcode);
           data.codezip = nuevo.data.zipcode._id; // usamos su id real
         }

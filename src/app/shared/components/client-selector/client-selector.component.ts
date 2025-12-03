@@ -21,7 +21,7 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
     <ion-modal [isOpen]="isModalOpen" (didDismiss)="closeModal()">
       <ng-template>
         <ion-header>
-          <ion-toolbar color="primary">
+          <ion-toolbar>
             <ion-title>{{ modalTitle }}</ion-title>
             <ion-buttons slot="end">
               <ion-button (click)="closeModal()">Cerrar</ion-button>

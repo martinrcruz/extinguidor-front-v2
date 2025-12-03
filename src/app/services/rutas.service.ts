@@ -111,7 +111,13 @@ export class RutasService extends BaseService {
 
   /** POST /rutas/update/:id - Retorna: { ok: true, data: { ruta: {...} } } */
   updateRuta(data: any): Observable<RouteResponse> {
-    return this.post<RutaData>(`${this.endpoint}/update/${data.id || data._id}`, data).pipe(
+    const id = data.id || data._id;
+    if (!id) {
+      throw new Error('ID de ruta es requerido para actualizar');
+    }
+    // Remover id y _id del body antes de enviar
+    const { id: _, _id: __, ...body } = data;
+    return this.post<RutaData>(`${this.endpoint}/update/${id}`, body).pipe(
       map(response => {
         if (response.ok && response.data?.ruta) {
           return response.data.ruta;
@@ -207,10 +213,14 @@ export class RutasService extends BaseService {
 
   /** GET /rutasn - Retorna: { ok: true, data: { rutasN: [...] } } */
   getRutasN(): Observable<any[]> {
-    return this.get<{ rutasN: any[] }>(this.endpointRutasN).pipe(
+    return this.get<{ rutasN?: any[]; rutas?: any[] }>(this.endpointRutasN).pipe(
       map(response => {
         if (response.ok && response.data?.rutasN) {
           return response.data.rutasN;
+        }
+        // Fallback: intentar leer 'rutas' si 'rutasN' no existe (compatibilidad)
+        if (response.ok && response.data?.rutas) {
+          return response.data.rutas;
         }
         throw new Error(response.error || 'Error al obtener las rutas N');
       })

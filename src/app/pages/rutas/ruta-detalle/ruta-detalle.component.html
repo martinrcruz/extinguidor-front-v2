@@ -51,8 +51,9 @@
   <div *ngIf="tabSelected === 'materiales'">
     <ion-button size="small" (click)="agregarMaterial()">
       <ion-icon name="add-outline" slot="icon-only"></ion-icon>
+      Agregar Material
     </ion-button>
-    <ion-list>
+    <ion-list *ngIf="materiales && materiales.length > 0">
       <ion-item *ngFor="let m of materiales">
         <ion-label>
           <h2>{{ m.name }}</h2>
@@ -60,21 +61,33 @@
         </ion-label>
       </ion-item>
     </ion-list>
+    <ion-card *ngIf="!materiales || materiales.length === 0">
+      <ion-card-content>
+        <p>No hay materiales asignados a esta ruta.</p>
+      </ion-card-content>
+    </ion-card>
   </div>
 
   <!-- PARTES -->
   <div *ngIf="tabSelected === 'partes'">
     <ion-button size="small" (click)="agregarParte()">
       <ion-icon name="add-outline" slot="icon-only"></ion-icon>
+      Agregar Parte
     </ion-button>
-    <ion-list>
+    <ion-list *ngIf="partesAsignados && partesAsignados.length > 0">
       <ion-item *ngFor="let p of partesAsignados">
         <ion-label>
-          <h2>{{ p.description }}</h2>
+          <h2>{{ p.title || p.description }}</h2>
           <p>Estado: {{ p.state }}</p>
+          <p *ngIf="p.description">Descripción: {{ p.description }}</p>
         </ion-label>
       </ion-item>
     </ion-list>
+    <ion-card *ngIf="!partesAsignados || partesAsignados.length === 0">
+      <ion-card-content>
+        <p>No hay partes asignados a esta ruta.</p>
+      </ion-card-content>
+    </ion-card>
   </div>
 
   <!-- FACTURACIÓN -->

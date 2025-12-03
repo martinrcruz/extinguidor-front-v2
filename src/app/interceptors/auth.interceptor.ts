@@ -8,7 +8,7 @@ import {
   HttpResponse
 } from '@angular/common/http';
 import { Observable, throwError, from } from 'rxjs';
-import { catchError, switchMap, finalize, tap } from 'rxjs/operators';
+import { catchError, switchMap, finalize, tap, share } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
@@ -18,7 +18,7 @@ import { LoadingController, ToastController } from '@ionic/angular';
 export class AuthInterceptor implements HttpInterceptor {
   private activeLoaders: HTMLIonLoadingElement[] = [];
   private loadingTimeout: any;
-  private requestCache = new Map<string, number>();
+  private pendingRequests = new Map<string, Observable<HttpEvent<unknown>>>();
   private readonly CACHE_DURATION = 100; // 100ms para evitar duplicados
 
   constructor(
@@ -31,29 +31,18 @@ export class AuthInterceptor implements HttpInterceptor {
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     // Crear una clave única para esta petición
     const requestKey = `${request.method}_${request.url}_${JSON.stringify(request.body || {})}`;
-    const now = Date.now();
     
-    // Verificar si hay una petición duplicada reciente
-    const lastRequestTime = this.requestCache.get(requestKey);
-    if (lastRequestTime && (now - lastRequestTime) < this.CACHE_DURATION) {
-      console.warn(`[AuthInterceptor] Petición duplicada detectada y bloqueada: ${request.method} ${request.url}`);
-      // Retornar un observable que no hace nada (o podrías retornar el último resultado en caché)
-      return new Observable(observer => {
-        observer.complete();
-      });
+    // Verificar si hay una petición idéntica en curso
+    const pendingRequest = this.pendingRequests.get(requestKey);
+    if (pendingRequest) {
+      console.log(`[AuthInterceptor] Reutilizando petición en curso: ${request.method} ${request.url}`);
+      return pendingRequest;
     }
-    
-    // Registrar esta petición
-    this.requestCache.set(requestKey, now);
-    
-    // Limpiar entradas antiguas del caché (más de 1 segundo)
-    setTimeout(() => {
-      this.requestCache.delete(requestKey);
-    }, 1000);
     
     console.log(`[AuthInterceptor] Procesando petición: ${request.method} ${request.url}`);
     
-    return from(this.authService.getToken()).pipe(
+    // Crear el observable de la petición y compartirlo para reutilizarlo
+    const requestObservable = from(this.authService.getToken()).pipe(
       switchMap(token => {
         // Ajustamos las cabeceras para CORS
         const headers: any = {
@@ -150,10 +139,22 @@ export class AuthInterceptor implements HttpInterceptor {
             if (loadingElement) {
               this.dismissLoader(loadingElement);
             }
-          })
+            
+            // Remover la petición del caché cuando termine
+            this.pendingRequests.delete(requestKey);
+          }),
+          // Compartir el observable para que múltiples suscriptores reciban el mismo resultado
+          share()
         );
-      })
+      }),
+      // Compartir el observable completo para reutilización
+      share()
     );
+
+    // Guardar la petición en el caché
+    this.pendingRequests.set(requestKey, requestObservable);
+
+    return requestObservable;
   }
 
   private dismissLoader(loader: HTMLIonLoadingElement) {

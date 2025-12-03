@@ -7,19 +7,29 @@ import { BaseService } from './base.service';
 import { AuthService } from './auth.service';
 
 export interface Facturacion {
-  _id: string;
+  _id?: string;
+  id?: number;
   ruta: {
-    _id: string;
-    name: {
+    _id?: string;
+    id?: number;
+    name?: string | {
       name: string;
     };
-  };
+  } | null;
   parte: {
-    _id: string;
-    description: string;
-  };
+    _id?: string;
+    id?: number;
+    title?: string;
+    description?: string;
+  } | null;
   facturacion: number;
   createdDate: string;
+}
+
+export interface CreateFacturacionDto {
+  facturacion: number;
+  rutaId: number; // ID de la ruta como número
+  parteId: number; // ID del parte como número
 }
 
 export interface FacturacionResponse {
@@ -44,11 +54,11 @@ export class FacturacionService extends BaseService {
     return this.get<any>(`${this.endpoint}/${id}`);
   }
 
-  createFacturacion(facturacion: Partial<Facturacion>) {
+  createFacturacion(facturacion: CreateFacturacionDto) {
     return this.post<any>(`${this.endpoint}/create`, facturacion);
   }
 
-  updateFacturacion(id: string, facturacion: Partial<Facturacion>) {
+  updateFacturacion(id: string, facturacion: CreateFacturacionDto) {
     return this.put<any>(`${this.endpoint}/update/${id}`, facturacion);
   }
 

@@ -33,8 +33,13 @@ export class UserService {
   }
 
   async updateUser(u: User) {
+    if (!u._id) {
+      throw new Error('El ID del usuario es requerido para actualizar');
+    }
     const opts = await this.opts();
-    return this.http.put<ApiEnvelope<{user: User; token: string}>>(`${this.baseUrl}/update`, u, opts);
+    // Extraer el ID del objeto y removerlo del body
+    const { _id, ...userData } = u;
+    return this.http.put<ApiEnvelope<{user: User; token: string}>>(`${this.baseUrl}/update/${_id}`, userData, opts);
   }
 
   async getUserById(id: string) {

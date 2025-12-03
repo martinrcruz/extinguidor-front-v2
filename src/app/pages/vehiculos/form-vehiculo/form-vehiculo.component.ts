@@ -3,6 +3,7 @@ import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { NavController } from '@ionic/angular';
 import { VehiculosService } from 'src/app/services/vehiculos.service';
+import { isoDateOnly } from 'src/app/shared/utils/date.utils';
 
 @Component({
   selector: 'app-form-vehiculo',
@@ -41,7 +42,10 @@ export class FormVehiculoComponent  implements OnInit {
       matricula:['', Validators.required],
       fuel:     ['Diesel'], // Diesel, Gasolina, etc.
       type:     ['Furgon'], // Furgon, Turismo...
-      photo:    ['']
+      photo:    [''],
+      kilometraje: [null],
+      fechaAdquisicion: [''],
+      fechaUltimoMantenimiento: ['']
     });
   }
 
@@ -57,7 +61,10 @@ export class FormVehiculoComponent  implements OnInit {
               matricula:  vehicle.matricula,
               fuel:       vehicle.fuel,
               type:       vehicle.type,
-              photo:      vehicle.photo
+              photo:      vehicle.photo,
+              kilometraje: vehicle.kilometraje,
+              fechaAdquisicion: vehicle.fechaAdquisicion ? isoDateOnly(vehicle.fechaAdquisicion) : '',
+              fechaUltimoMantenimiento: vehicle.fechaUltimoMantenimiento ? isoDateOnly(vehicle.fechaUltimoMantenimiento) : ''
             });
           }
         },
@@ -73,7 +80,25 @@ export class FormVehiculoComponent  implements OnInit {
   async guardar() {
     if (this.vehicleForm.invalid) return;
 
-    const data = this.vehicleForm.value;
+    const formValue = this.vehicleForm.value;
+    
+    // Preparar los datos para enviar, procesando fechas y kilometraje
+    // Convertir fechas a formato YYYY-MM-DD (sin hora) para que el backend las pueda parsear correctamente
+    const fechaAdq = formValue.fechaAdquisicion ? isoDateOnly(formValue.fechaAdquisicion) : '';
+    const fechaMant = formValue.fechaUltimoMantenimiento ? isoDateOnly(formValue.fechaUltimoMantenimiento) : '';
+    
+    const data: any = {
+      brand: formValue.brand,
+      modelo: formValue.modelo,
+      matricula: formValue.matricula,
+      fuel: formValue.fuel,
+      type: formValue.type,
+      photo: formValue.photo || 'auto.jpg',
+      kilometraje: formValue.kilometraje ? Number(formValue.kilometraje) : null,
+      fechaAdquisicion: fechaAdq || null,
+      fechaUltimoMantenimiento: fechaMant || null
+    };
+
     try {
       if (!this.isEdit) {
         // Crear
