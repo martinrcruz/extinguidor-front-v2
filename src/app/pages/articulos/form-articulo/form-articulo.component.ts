@@ -76,14 +76,22 @@ export class FormArticuloComponent implements OnInit {
       if (!this.isEdit) {
         // Crear
         const req = await this._articulo.createArticulo(data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/articulos');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/articulos');
+          } else {
+            console.error('Error al crear articulo:', resp.error);
+          }
         });
       } else {
         // Editar
         const req = await this._articulo.updateArticulo(this.articuloId!, data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/articulos');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/articulos');
+          } else {
+            console.error('Error al actualizar articulo:', resp.error);
+          }
         });
       }
     } catch (error) {

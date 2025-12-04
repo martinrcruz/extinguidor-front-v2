@@ -172,15 +172,23 @@ export class FormZonaComponent implements OnInit {
       if (!this.isEdit) {
         // Crear
         const req = await this._zona.createZone(data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/zonas');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/zonas');
+          } else {
+            console.error('Error al crear zona:', resp.error);
+          }
         });
       } else {
         // Editar
         data._id = this.zonaId;
         const req = await this._zona.updateZone(this.zonaId!, data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/zonas');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/zonas');
+          } else {
+            console.error('Error al actualizar zona:', resp.error);
+          }
         });
       }
     } catch (error) {

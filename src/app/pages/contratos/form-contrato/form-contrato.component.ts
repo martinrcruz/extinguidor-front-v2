@@ -101,16 +101,22 @@ export class FormContratoComponent implements OnInit {
         // Crear contrato
         const req = await this._contrato.createContract(data);
         req.subscribe((resp: any) => {
-          // Cambiado de '/contracts' a '/contratos'
-          this.navCtrl.navigateRoot('/contratos');
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/contratos');
+          } else {
+            console.error('Error al crear contrato:', resp.error);
+          }
         });
       } else {
         // Editar contrato
         data._id = this.contractId;
         const req = await this._contrato.updateContract(this.contractId as string, data);
         req.subscribe((resp: any) => {
-          // Cambiado de '/contracts' a '/contratos'
-          this.navCtrl.navigateRoot('/contratos');
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/contratos');
+          } else {
+            console.error('Error al actualizar contrato:', resp.error);
+          }
         });
       }
     } catch (error) {

@@ -223,15 +223,19 @@ export class FormRutaComponent implements OnInit {
     try {
       if (!this.isEdit) {
         const ruta = await this._rutas.createRuta(body).toPromise();
-        if (ruta) {
+        if (ruta && (ruta as any)?.ok !== false) {
           console.log('Ruta creada exitosamente:', ruta);
           this.navCtrl.navigateRoot('/rutas');
+        } else {
+          console.error('Error al crear ruta:', (ruta as any)?.error);
         }
       } else {
         const ruta = await this._rutas.updateRuta({ ...body, id: this.rutaId, _id: this.rutaId }).toPromise();
-        if (ruta) {
+        if (ruta && (ruta as any)?.ok !== false) {
           console.log('Ruta actualizada exitosamente:', ruta);
           this.navCtrl.navigateRoot('/rutas');
+        } else {
+          console.error('Error al actualizar ruta:', (ruta as any)?.error);
         }
       }
     } catch (e: any) {

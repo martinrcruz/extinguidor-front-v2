@@ -103,8 +103,12 @@ export class FormVehiculoComponent  implements OnInit {
       if (!this.isEdit) {
         // Crear
         const req = await this._vehiculo.createVehicle(data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/vehiculos');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/vehiculos');
+          } else {
+            console.error('Error al crear vehículo:', resp.error);
+          }
         });
       } else {
         // Editar
@@ -114,8 +118,12 @@ export class FormVehiculoComponent  implements OnInit {
         }
         data._id = this.vehicleId;
         const req = await this._vehiculo.updateVehicle(this.vehicleId, data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/vehiculos');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/vehiculos');
+          } else {
+            console.error('Error al actualizar vehículo:', resp.error);
+          }
         });
       }
     } catch (error) {

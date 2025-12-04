@@ -72,8 +72,12 @@ export class FormMaterialComponent  implements OnInit {
       if (!this.isEdit) {
         // Crear
         const req = await this._material.createMaterial(data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/materiales');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/materiales');
+          } else {
+            console.error('Error al crear material:', resp.error);
+          }
         });
       } else {
         // Editar
@@ -83,8 +87,12 @@ export class FormMaterialComponent  implements OnInit {
         }
         data._id = this.materialId;
         const req = await this._material.updateMaterial(this.materialId, data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/materiales');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/materiales');
+          } else {
+            console.error('Error al actualizar material:', resp.error);
+          }
         });
       }
     } catch (error) {

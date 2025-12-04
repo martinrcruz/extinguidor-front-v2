@@ -137,8 +137,12 @@ export class FormHerramientaComponent  implements OnInit {
       if (!this.isEdit) {
         // Crear
         const req = await this._herramienta.createHerramienta(data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/herramientas');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/herramientas');
+          } else {
+            console.error('Error al crear herramienta:', resp.error);
+          }
         });
       } else {
         // Editar
@@ -147,8 +151,12 @@ export class FormHerramientaComponent  implements OnInit {
           return;
         }
         const req = await this._herramienta.updateHerramienta(this.herramientaId, data);
-        req.subscribe(() => {
-          this.navCtrl.navigateRoot('/herramientas');
+        req.subscribe((resp: any) => {
+          if (resp?.ok !== false) {
+            this.navCtrl.navigateRoot('/herramientas');
+          } else {
+            console.error('Error al actualizar herramienta:', resp.error);
+          }
         });
       }
     } catch (error) {
