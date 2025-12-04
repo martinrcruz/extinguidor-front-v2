@@ -510,6 +510,9 @@ export class FormParteComponent implements OnInit {
         const normalizedRutaId = rutaId ? rutaId.toString() : '';
 
         /* ----------- rellenar FormGroup ----------- */
+        // Convertir periodico a booleano explícitamente
+        const periodicoValue = p.periodico === true || p.periodico === 'true' || p.periodico === 1;
+        
         this.parteForm.patchValue({
           title: p.title ?? '',
           description: p.description ?? '',
@@ -523,7 +526,7 @@ export class FormParteComponent implements OnInit {
           ruta: normalizedRutaId,
           coordinationMethod: mapCoordinationMethodFromBackend(p.coordinationMethod || ''),
           gestiona: p.gestiona ?? 0,
-          periodico: p.periodico ?? false,
+          periodico: periodicoValue,
           frequency: p.frequency ?? 'Mensual',
           endDate: p.endDate ? isoDateOnly(p.endDate) : ''
         });
@@ -656,10 +659,9 @@ export class FormParteComponent implements OnInit {
       const req = await this._parte.createParte(body);
       req.subscribe((resp: any) => {
         console.log('Respuesta del backend:', resp);
-        if (resp.ok) {
+        // El servicio ya transforma la respuesta, si llegamos aquí es exitoso
+        if (resp) {
           this.navCtrl.navigateRoot('/partes');
-        } else {
-          console.error('Error al crear parte:', resp.error, resp.detalles);
         }
       }, (error) => {
         console.error('Error en la petición:', error);
@@ -710,10 +712,10 @@ export class FormParteComponent implements OnInit {
       // El ID se pasa en la URL, no en el body para update
       const req = await this._parte.updateParte(this.parteId!, body);
       req.subscribe((resp: any) => {
-        if (resp.ok) {
+        console.log('Respuesta del backend al actualizar:', resp);
+        // El servicio ya transforma la respuesta, si llegamos aquí es exitoso
+        if (resp) {
           this.navCtrl.navigateRoot('/partes');
-        } else {
-          console.error('Error al actualizar parte:', resp.error, resp.detalles);
         }
       }, (error) => {
         console.error('Error en la petición:', error);
